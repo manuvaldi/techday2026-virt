@@ -1,0 +1,6 @@
+apiVersion: v2
+name: stock-app
+description: Un Helm chart para desplegar el stack de VMs (Frontend, Backend, Database) en KubeVirt
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

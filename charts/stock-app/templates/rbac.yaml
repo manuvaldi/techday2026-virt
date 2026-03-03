@@ -1,0 +1,30 @@
+{{- range .Values.rbac.users }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ . }}-admin-application
+  namespace: {{ . }}-application
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: {{ . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ . }}-kubevirt-migrate-application
+  namespace: {{ . }}-application
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: {{ . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubevirt.io:migrate
+{{- end }}

@@ -1,0 +1,29 @@
+rbac:
+  users:
+    - user1
+    - user2
+
+images:
+  os: "docker://quay.io/containerdisks/fedora:43"
+
+components:
+  frontend:
+    image: "quay.io/mvalledi/stock-example-app-frontend:latest"
+    port: 8080
+    createRoute: true
+    env:
+      BACKEND_URL: "http://backend:5000/data"
+      
+  backend:
+    image: "quay.io/mvalledi/stock-example-app-backend:latest"
+    port: 5000
+    createRoute: false
+    env:
+      REDIS_HOST: database
+      REDIS_PORT: 6379
+      
+  database:
+    image: "quay.io/mvalledi/stock-example-app-database:latest"
+    port: 6379
+    createRoute: false
+    env: {}

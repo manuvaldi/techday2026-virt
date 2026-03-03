@@ -1,0 +1,14 @@
+{{- range .Values.rbac.users }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ . }}-application
+  labels:
+    kubernetes.io/metadata.name: {{ . }}-application
+    network-level: one
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+{{- end }}

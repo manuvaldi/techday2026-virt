@@ -1,0 +1,93 @@
+# syntax=docker/dockerfile:1
+# DevOps Unified CLI Toolbox
+
+FROM debian:trixie-slim
+
+ARG TARGETARCH=amd64 TOOLBOX_HOME=/home/toolbox
+
+LABEL description="Toolbox with oc, kubectl, argocd, roxctl, helm, aws-cli"
+
+ENV HOME=$TOOLBOX_HOME \
+    KUBECONFIG=$TOOLBOX_HOME/.kube/config \
+    PATH=/usr/local/bin:$PATH \
+    DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        wget \
+        git \
+        bash-completion \
+        unzip \
+        tar \
+        gzip \
+        jq \
+        groff \
+        less \
+        nano \
+        vim \
+        openssl \
+	gettext-base \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- OpenShift CLI (oc) ---
+RUN echo "Installing oc..." && \
+    curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz | \
+    tar -xz -C /usr/local/bin/ oc && \
+    chmod +x /usr/local/bin/oc
+
+# --- Kubernetes CLI (kubectl) ---
+RUN echo "Installing kubectl..." && \
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/
+
+# --- Argo CD CLI (argocd) ---
+RUN echo "Installing argocd..." && \
+    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 && \
+    chmod +x /usr/local/bin/argocd
+
+# --- Red Hat Advanced Cluster Security (roxctl) ---
+RUN echo "Installing roxctl..." && \
+    curl -sL -o /usr/local/bin/roxctl https://mirror.openshift.com/pub/rhacs/assets/latest/bin/Linux/roxctl && \
+    chmod +x /usr/local/bin/roxctl
+
+# --- Helm (helm) ---
+RUN echo "Installing helm..." && \
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
+    chmod +x get_helm.sh && \
+   ./get_helm.sh && \
+    rm -f get_helm.sh
+
+# --- AWS CLI v2 ---
+RUN echo "Installing AWS CLI v2..." && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip -q awscliv2.zip && \
+   ./aws/install && \
+    rm -rf awscliv2.zip aws
+
+RUN mkdir -p /etc/bash_completion.d && \
+    oc completion bash > /etc/bash_completion.d/oc && \
+    kubectl completion bash > /etc/bash_completion.d/kubectl && \
+    helm completion bash > /etc/bash_completion.d/helm && \
+    argocd completion bash > /etc/bash_completion.d/argocd && \
+    roxctl completion bash > /etc/bash_completion.d/roxctl && \
+    echo "complete -C '/usr/local/bin/aws_completer' aws" >> /etc/bash_completion.d/aws_manual
+
+RUN useradd -u 10001 -m -d $TOOLBOX_HOME -s /bin/bash toolbox && \
+    mkdir -p $TOOLBOX_HOME/.kube \
+             $TOOLBOX_HOME/.aws \
+             $TOOLBOX_HOME/.ssh \
+             $TOOLBOX_HOME/.config/helm \
+             $TOOLBOX_HOME/.argocd && \
+    chown -R 10001:0 $TOOLBOX_HOME && \
+    chmod -R g+rwX $TOOLBOX_HOME
+
+COPY toolbox-entrypoint.sh /usr/local/bin/toolbox-entrypoint.sh
+RUN chmod +x /usr/local/bin/toolbox-entrypoint.sh
+
+WORKDIR $TOOLBOX_HOME
+USER 10001
+
+ENTRYPOINT ["/usr/local/bin/toolbox-entrypoint.sh"]
+CMD ["/bin/bash"]

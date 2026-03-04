@@ -17,7 +17,8 @@ tabs:
 
   # Single terminal
   - name: Bastion
-    path: /wetty
+    #path: /wetty
+    path: /terminal
     port: 443
 
   # Vertical split terminals
@@ -29,5 +30,5 @@ tabs:
   #   secondary_port: 443
 
   # External page
-  - name: Llamastack Docs
-    url: 'https://llama-stack.readthedocs.io/en/latest/'
+  # - name: Llamastack Docs
+  #   url: 'https://llama-stack.readthedocs.io/en/latest/'

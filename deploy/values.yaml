@@ -5,7 +5,7 @@ wetty:
 content:
   repoUrl: "https://github.com/manuvaldi/techday2026-virt.git"
   repoRef: "main"
-  antoraPlaybook: "tutorial/site.yml"
-  uiConfig: "tutorial/ui-config.yml"
+  antoraPlaybook: "site.yml"
+  uiConfig: ""
 
 guid: techday2026

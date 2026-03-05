@@ -137,6 +137,42 @@ uninstall_and_clean() {
     done
 }
 
+inject_oauth_proxy() {
+    local user=$1
+    local namespace="${user}-application"
+    local app_name="showroom-${user}"
+    
+    echo "Securing Showroom with OAuth Proxy for $user..."
+
+    if [ ! -f "oauth-sidecar.yaml" ]; then
+        echo "Error: oauth-sidecar.yaml no se encuentra en este directorio."
+        return 1
+    fi
+
+    local oauth_image=$(oc adm release info --image-for=oauth-proxy)
+    local cookie_secret=$(openssl rand -base64 32 | head -c 32)
+
+    local sa_name=$(oc get deployment $app_name -n $namespace -o jsonpath='{.spec.template.spec.serviceAccountName}' 2>/dev/null)
+    if [ -z "$sa_name" ]; then
+        sa_name="default"
+    fi
+
+    sed -e "s|{{COOKIE_SECRET}}|${cookie_secret}|g" \
+        -e "s|{{OAUTH_PROXY_IMAGE}}|${oauth_image}|g" \
+        -e "s|{{SERVICE_ACCOUNT}}|${sa_name}|g" \
+        oauth-sidecar.yaml > /tmp/patch-${app_name}.yaml
+
+    oc patch deployment $app_name -n $namespace --patch-file /tmp/patch-${app_name}.yaml >/dev/null 2>&1
+    rm -f /tmp/patch-${app_name}.yaml
+
+    oc patch service $app_name -n $namespace --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/targetPort", "value": 8888}]' >/dev/null 2>&1
+    oc patch route $app_name -n $namespace -p '{"spec":{"port":{"targetPort":8888},"tls":{"termination":"edge"}}}' >/dev/null 2>&1
+
+    oc annotate serviceaccount $sa_name serviceaccounts.openshift.io/oauth-redirectreference.primary='{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"'${app_name}'"}}' -n $namespace --overwrite >/dev/null 2>&1
+
+    echo "OAuth Proxy successfully injected for $user using ServiceAccount: $sa_name!"
+}
+
 deploy_showroom() {
     echo "--- Deploying Showroom for multiple users ---"
     
@@ -174,6 +210,8 @@ deploy_showroom() {
         HELM_CMD="helm upgrade --install showroom-${user} $SHOWROOM_CHART_DIR -f $SHOWROOM_VALUES --namespace ${user}-application --set guid=${user}"
         echo "Executing: $HELM_CMD"
         eval $HELM_CMD
+
+        inject_oauth_proxy "$user"
 
         echo "Securing namespace: granting 'edit' role to $user..."
         oc adm policy add-role-to-user edit $user -n "${user}-application"

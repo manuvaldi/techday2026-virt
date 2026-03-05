@@ -60,8 +60,45 @@ get_users() {
     return 0
 }
 
+generate_and_apply_passwords() {
+    echo -e "\n--- Generating passwords for users ---"
+    
+    > lab_credentials.txt
+    > users.htpasswd
+
+    local IFS=','
+    for user in $CURRENT_USERS; do
+        local random_pass=$(tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 8)
+        
+        echo "User: $user  |  Password: $random_pass" | tee -a lab_credentials.txt
+        
+        htpasswd -b -B users.htpasswd "$user" "$random_pass" >/dev/null 2>&1
+    done
+
+    echo "Credentials saved in 'lab_credentials.txt'"
+
+    echo "Updating authentication Secret in OpenShift..."
+    oc create secret generic htpasswd-users-secret --from-file=htpasswd=users.htpasswd -n openshift-config --dry-run=client -o yaml | oc apply -f -
+    
+    echo "NOTE: OpenShift authentication pods may take ~1 minute to reload passwords."
+    echo ""
+}
+
 deploy_default() {
     read_release_name
+    
+    CURRENT_USERS=$(grep -E '^[[:space:]]*users:' "$CHART_DIR/values.yaml" 2>/dev/null | cut -d ':' -f2 | tr -d ' []{}"'\''' | tr -d ' ')
+    if [ -z "$CURRENT_USERS" ]; then
+        CURRENT_USERS=$(awk '/^[[:space:]]*users:/{flag=1; next} /^[[:space:]]*[a-zA-Z0-9_]+:/{flag=0} flag && /^[[:space:]]*-/{gsub(/^[[:space:]]*-[[:space:]]*/,""); gsub(/["'\''\r]/,""); print}' "$CHART_DIR/values.yaml" 2>/dev/null | paste -sd, -)
+    fi
+
+    if [ -z "$CURRENT_USERS" ]; then
+        echo "Error: Could not extract default users from $CHART_DIR/values.yaml"
+        return 1
+    fi
+
+    generate_and_apply_passwords
+
     echo "Deploying infrastructure with default users..."
     HELM_CMD="helm upgrade --install $RELEASE_NAME $CHART_DIR"
     echo "Executing: $HELM_CMD"
@@ -71,6 +108,8 @@ deploy_default() {
 deploy_custom() {
     read_release_name
     get_users || return
+    
+    generate_and_apply_passwords
     
     echo "Deploying infrastructure for users: $CURRENT_USERS"
     HELM_CMD="helm upgrade --install $RELEASE_NAME $CHART_DIR --set rbac.users={$CURRENT_USERS}"
@@ -101,6 +140,17 @@ uninstall_and_clean() {
 deploy_showroom() {
     echo "--- Deploying Showroom for multiple users ---"
     
+    get_users || return
+
+    IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
+    for user in "${USER_ARRAY[@]}"; do
+        if ! kubectl get namespace "${user}-application" >/dev/null 2>&1; then
+            echo -e "\nError: The namespace '${user}-application' does not exist."
+            echo "Please run Step 1 or Step 2 to deploy the infrastructure first!"
+            return 1
+        fi
+    done
+
     if [ ! -d "$SHOWROOM_CHART_DIR" ]; then
         echo "Showroom chart not found. Downloading from RHPDS..."
         mkdir -p ./charts
@@ -116,16 +166,17 @@ deploy_showroom() {
         return
     fi
 
-    get_users || return
-
-    IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
     for user in "${USER_ARRAY[@]}"; do
         echo "----------------------------------------"
         echo "Deploying Showroom for: $user"
         echo "Namespace: ${user}-application"
-        HELM_CMD="helm upgrade --install showroom-${user} $SHOWROOM_CHART_DIR -f $SHOWROOM_VALUES --namespace ${user}-application --create-namespace --set guid=${user}"
+        
+        HELM_CMD="helm upgrade --install showroom-${user} $SHOWROOM_CHART_DIR -f $SHOWROOM_VALUES --namespace ${user}-application --set guid=${user}"
         echo "Executing: $HELM_CMD"
         eval $HELM_CMD
+
+        echo "Securing namespace: granting 'edit' role to $user..."
+        oc adm policy add-role-to-user edit $user -n "${user}-application"
     done
 }
 

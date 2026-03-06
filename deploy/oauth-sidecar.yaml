@@ -1,0 +1,16 @@
+spec:
+  template:
+    spec:
+      containers:
+      - name: oauth-proxy
+        image: {{OAUTH_PROXY_IMAGE}}
+        ports:
+        - containerPort: 8888
+          name: proxy
+        args:
+        - --provider=openshift
+        - --https-address=
+        - --http-address=:8888
+        - --upstream=http://localhost:8080
+        - --cookie-secret={{COOKIE_SECRET}}
+        - --openshift-service-account={{SERVICE_ACCOUNT}}

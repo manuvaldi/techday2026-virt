@@ -8,54 +8,116 @@ SHOWROOM_CHART_DIR="./charts/showroom-single-pod"
 SHOWROOM_REPO="https://github.com/rhpds/showroom-deployer.git"
 SHOWROOM_VALUES="values.yaml"
 
-generate_custom_kubeconfig() {
-    echo "--- Configure new Cluster connection ---"
-    read -p "Server URL (e.g. https://api...): " cluster_server
-    read -s -p "Login token: " cluster_token
-    echo ""
-    read -p "Kubeconfig file name (e.g. azure.kubeconfig) or Enter for default: " kubeconfig_file
-    
-    if [ -n "$kubeconfig_file" ]; then
-        export KUBECONFIG="$(pwd)/$kubeconfig_file"
-        echo "Temporary KUBECONFIG configured at: $KUBECONFIG"
+mkdir -p ./kubeconfigs
+
+ensure_connected() {
+    if ! oc whoami >/dev/null 2>&1; then
+        echo "Error: Not connected to any cluster. Please use Option 9 to connect first."
+        return 1
     fi
-    
-    oc login --token="$cluster_token" --server="$cluster_server" --insecure-skip-tls-verify=true
-    
-    if [ $? -ne 0 ]; then
-        echo "Error: Login failed. Check the token and URL."
-        exit 1
-    fi
+    return 0
 }
 
-check_cluster_connection() {
-    if ! oc whoami >/dev/null 2>&1; then
-        echo "No active cluster connection detected."
-        generate_custom_kubeconfig
-    fi
+cluster_management_menu() {
+    while true; do
+        echo "=========================================="
+        echo "           CLUSTER MANAGEMENT             "
+        echo "=========================================="
+        echo "1. Switch to an existing Kubeconfig"
+        echo "2. Add new cluster (Paste full 'oc login' command)"
+        echo "3. Add new cluster (Enter URL and Token)"
+        echo "4. Return to Main Menu"
+        read -p "Select an option [1-4]: " cm_choice
 
-    local current_context=$(oc config current-context 2>/dev/null)
-    local current_server=$(oc whoami --show-server 2>/dev/null)
-    local current_user=$(oc whoami 2>/dev/null)
+        case $cm_choice in
+            1)
+                local configs=(./kubeconfigs/*.kubeconfig)
+                if [ ! -e "${configs[0]}" ]; then
+                    echo "Error: No saved kubeconfigs found in ./kubeconfigs/"
+                    continue
+                fi
+                echo -e "\nAvailable configurations:"
+                for i in "${!configs[@]}"; do
+                    echo "$((i+1)). $(basename "${configs[$i]}")"
+                done
+                read -p "Select a number to switch (or Enter to cancel): " conf_idx
+                if [[ "$conf_idx" =~ ^[0-9]+$ ]] && [ "$conf_idx" -gt 0 ] && [ "$conf_idx" -le "${#configs[@]}" ]; then
+                    export KUBECONFIG="$(pwd)/${configs[$((conf_idx-1))]}"
+                    if oc whoami >/dev/null 2>&1; then
+                        echo "Successfully switched KUBECONFIG to: $(basename "$KUBECONFIG")"
+                        break
+                    else
+                        echo "Warning: Switched to $(basename "$KUBECONFIG"), but the token seems expired or invalid."
+                        break
+                    fi
+                elif [ -n "$conf_idx" ]; then
+                    echo "Invalid selection."
+                fi
+                ;;
+            2)
+                read -p "Enter a reference name for this cluster (e.g. azure): " k_name
+                if [ -z "$k_name" ]; then echo "Error: Name cannot be empty."; continue; fi
+                
+                read -p "Paste the full 'oc login ...' command: " oc_cmd
+                if [[ ! "$oc_cmd" =~ ^oc[[:space:]]+login ]]; then
+                    echo "Error: Invalid command. It must start with 'oc login'"
+                    continue
+                fi
+                
+                export KUBECONFIG="$(pwd)/kubeconfigs/${k_name}.kubeconfig"
+                echo "Attempting login..."
+                eval "$oc_cmd --insecure-skip-tls-verify=true" >/dev/null 2>&1
+                
+                if [ $? -eq 0 ]; then
+                    echo "Successfully logged in and saved to kubeconfigs/${k_name}.kubeconfig"
+                    break
+                else
+                    echo "Error: Login failed. Please check your command."
+                    unset KUBECONFIG
+                fi
+                ;;
+            3)
+                read -p "Enter a reference name for this cluster (e.g. baremetal): " k_name
+                if [ -z "$k_name" ]; then echo "Error: Name cannot be empty."; continue; fi
+                
+                read -p "Server URL (e.g. https://api...): " cluster_server
+                if [ -z "$cluster_server" ]; then echo "Error: URL cannot be empty."; continue; fi
+                
+                read -s -p "Login token: " cluster_token
+                echo ""
+                if [ -z "$cluster_token" ]; then echo "Error: Token cannot be empty."; continue; fi
 
-    echo "=========================================="
-    echo "            CLUSTER VALIDATION            "
-    echo "=========================================="
-    echo "Context: $current_context"
-    echo "Server:  $current_server"
-    echo "User:    $current_user"
-    echo "=========================================="
-    
-    read -p "Proceed with deployment on this cluster? (y/n): " confirm
-    if [[ "$confirm" != "y" ]]; then
-        echo "Execution aborted."
-        exit 0
-    fi
+                export KUBECONFIG="$(pwd)/kubeconfigs/${k_name}.kubeconfig"
+                echo "Attempting login..."
+                oc login --token="$cluster_token" --server="$cluster_server" --insecure-skip-tls-verify=true >/dev/null 2>&1
+                
+                if [ $? -eq 0 ]; then
+                    echo "Successfully logged in and saved to kubeconfigs/${k_name}.kubeconfig"
+                    break
+                else
+                    echo "Error: Login failed. Check the token and URL."
+                    unset KUBECONFIG
+                fi
+                ;;
+            4) break ;;
+            *) echo "Invalid option." ;;
+        esac
+    done
 }
 
 show_menu() {
+    local current_server=$(oc whoami --show-server 2>/dev/null)
+    local current_user=$(oc whoami 2>/dev/null)
+    local status_text="NOT CONNECTED"
+    
+    if [ -n "$current_server" ] && [ -n "$current_user" ]; then
+        status_text="$current_user @ $current_server"
+    fi
+
     echo "=========================================="
     echo "             DEPLOYMENT MENU              "
+    echo "=========================================="
+    echo " TARGET: $status_text"
     echo "=========================================="
     echo "--- Standard Infrastructure (VMs) ---"
     echo "1. Deploy with default users"
@@ -63,25 +125,33 @@ show_menu() {
     echo -e "\n--- App Only Infrastructure (NO VMs) ---"
     echo "3. Deploy WITHOUT VMs (Default users)"
     echo "4. Deploy WITHOUT VMs (Custom users)"
-    echo -e "\n--- Azure Infrastructure (ACM) ---"
-    echo "5. Deploy for Azure (Default users)"
-    echo "6. Deploy for Azure (Custom users)"
     echo -e "\n--- Teardown ---"
-    echo "7. Uninstall release"
-    echo "8. Uninstall release AND clean namespaces"
+    echo "5. Uninstall release"
+    echo "6. Uninstall release AND clean namespaces"
     echo -e "\n--- Lab Environment ---"
-    echo "9. Deploy Showroom"
-    echo "10. Uninstall Showroom"
+    echo "7. Deploy Showroom"
+    echo "8. Uninstall Showroom"
     echo -e "\n--- Cluster Management ---"
-    echo "11. Switch / Generate Kubeconfig"
+    echo "9. Switch / Generate Kubeconfig"
     echo "=========================================="
-    echo "12. Exit"
+    echo "10. Exit"
     echo "=========================================="
 }
 
 read_release_name() {
     read -p "Enter release name [$DEFAULT_RELEASE]: " input_release
     RELEASE_NAME=${input_release:-$DEFAULT_RELEASE}
+}
+
+ask_acm_policy() {
+    read -p "Enable User Defined Network (UDN) policies for this deployment? (y/n): " acm_choice
+    if [[ "$acm_choice" == "y" ]]; then
+        ACM_FLAG="--set enableUDN=true"
+        echo "UDN policies enabled."
+    else
+        ACM_FLAG=""
+        echo "UDN policies disabled."
+    fi
 }
 
 get_default_users_only() {
@@ -209,53 +279,49 @@ generate_and_apply_passwords() {
 }
 
 deploy_default() {
+    ensure_connected || return
     read_release_name
     get_default_users_only || return
+    ask_acm_policy
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR"
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" $ACM_FLAG
 }
 
 deploy_custom() {
+    ensure_connected || return
     read_release_name
     get_users || return
+    ask_acm_policy
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}"
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" $ACM_FLAG
 }
 
 deploy_no_vms_default() {
+    ensure_connected || return
     read_release_name
     get_default_users_only || return
+    ask_acm_policy
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set vms.enabled=false
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set vms.enabled=false $ACM_FLAG
 }
 
 deploy_no_vms_custom() {
+    ensure_connected || return
     read_release_name
     get_users || return
+    ask_acm_policy
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" --set vms.enabled=false
-}
-
-deploy_azure_default() {
-    read_release_name
-    get_default_users_only || return
-    generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set isAzure=true
-}
-
-deploy_azure_custom() {
-    read_release_name
-    get_users || return
-    generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" --set isAzure=true
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" --set vms.enabled=false $ACM_FLAG
 }
 
 uninstall_release() {
+    ensure_connected || return
     read_release_name
     helm uninstall "$RELEASE_NAME"
 }
 
 uninstall_and_clean() {
+    ensure_connected || return
     read_release_name
     get_users || return
     
@@ -299,6 +365,7 @@ inject_oauth_proxy() {
 }
 
 deploy_showroom() {
+    ensure_connected || return
     get_users || return
 
     if [ ! -f "users.htpasswd" ]; then
@@ -341,6 +408,7 @@ deploy_showroom() {
 }
 
 uninstall_showroom() {
+    ensure_connected || return
     get_users || return
 
     IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
@@ -353,25 +421,26 @@ uninstall_showroom() {
     done
 }
 
-check_cluster_connection
+if ! oc whoami >/dev/null 2>&1; then
+    echo "Welcome! No active cluster connection detected. Let's set one up."
+    cluster_management_menu
+fi
 
 while true; do
     show_menu
-    read -p "Select an option [1-12]: " choice
+    read -p "Select an option [1-10]: " choice
     echo ""
     case $choice in
         1) deploy_default ;;
         2) deploy_custom ;;
         3) deploy_no_vms_default ;;
         4) deploy_no_vms_custom ;;
-        5) deploy_azure_default ;;
-        6) deploy_azure_custom ;;
-        7) uninstall_release ;;
-        8) uninstall_and_clean ;;
-        9) deploy_showroom ;;
-        10) uninstall_showroom ;;
-        11) generate_custom_kubeconfig ;;
-        12) exit 0 ;;
+        5) uninstall_release ;;
+        6) uninstall_and_clean ;;
+        7) deploy_showroom ;;
+        8) uninstall_showroom ;;
+        9) cluster_management_menu ;;
+        10) exit 0 ;;
         *) echo "Invalid option." ;;
     esac
     echo ""

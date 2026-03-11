@@ -27,3 +27,8 @@ components:
     port: 6379
     createRoute: false
     env: {}
+
+vms:
+  enabled: true
+
+enableUDN: false

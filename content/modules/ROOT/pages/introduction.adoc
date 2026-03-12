@@ -1,0 +1,6 @@
+Red Hat OpenShift Virtualization bridges the gap between traditional infrastructure and cloud-native environments by allowing you to run virtual machines directly on Kubernetes. This platform not only helps modernize legacy workloads but also enables you to build hybrid applications that seamlessly mix VMs, containers, and serverless functions—all managed through a single, unified interface.
+
+This hands-on workshop is designed to give you practical, real-world experience with the platform. Throughout the session, we will walk through the typical day-to-day operations, workflows, and administrative tasks that virtualization teams handle on a regular basis.
+
+Your user: {user}
+OpenShift Console: {openshift_cluster_console_url}

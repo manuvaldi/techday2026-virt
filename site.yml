@@ -1,6 +1,6 @@
 ---
 site:
-  title: Showroom Template Demo
+  title: Red Hat Tech Day 2026
   url: https://github.com/manuvaldi/techday2026-virt
   start_page: modules::index.adoc
 

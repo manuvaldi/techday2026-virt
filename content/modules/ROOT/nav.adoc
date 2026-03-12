@@ -1,3 +1,9 @@
+* xref:index.adoc[Techday 2026]
+
+.Introduction
+* xref:introduction.adoc[Introduction]
+
+////
 * xref:index.adoc[What is Showroom?]
 
 .Content Developer Guide
@@ -16,3 +22,4 @@
 * xref:nookbag.adoc[Nookbag UI]
 * xref:ocp-integration.adoc[OCP Integration]
 * xref:contributing.adoc[Contributing]
+////

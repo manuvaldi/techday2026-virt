@@ -27,6 +27,11 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: kubevirt.io:migrate
+---
+apiVersion: user.openshift.io/v1
+kind: User
+metadata:
+  name: {{ . }}
 {{- if $.Values.enableUDN }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -42,5 +47,85 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: openshift-ovn-kubernetes-udn-editor
+{{- end }}
+
+{{- if $.Values.enableACM }}
+---
+apiVersion: rbac.open-cluster-management.io/v1beta1
+kind: MulticlusterRoleAssignment
+metadata:
+  name: role-assignment-{{ . }}-global-roles
+  namespace: open-cluster-management-global-set
+spec:
+  roleAssignments:
+
+  - clusterRole: acm-vm-extended-noscope:view
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: {{ . }}-global-acm-vm-extended-noscope:view
+
+  - clusterRole: acm-vm-cluster-migration:view
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: {{ . }}-acm-vm-cluster-migration:view
+
+  - clusterRole: kubevirt.io:admin
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: {{ . }}-kubevirt.io:admin
+    targetNamespaces:
+    - {{ . }}-application
+
+  - clusterRole: kubevirt.io:migrate
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: {{ . }}-kubevirt.io:migrate
+    targetNamespaces:
+    - {{ . }}-application
+
+  - clusterRole: acm-vm-fleet:admin
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: {{ . }}-acm-vm-fleet:admin
+
+  subject:
+    kind: User
+    name: {{ . }}        
+---
+apiVersion: rbac.open-cluster-management.io/v1beta1
+kind: MulticlusterRoleAssignment
+metadata:
+  name: role-assignment-{{ . }}-global-acm-vm-extended-view
+  namespace: open-cluster-management-global-set
+spec:
+  roleAssignments:
+
+  - clusterRole: acm-vm-extended:view
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: {{ . }}-global-acm-vm-extended:view
+    targetNamespaces:
+    - {{ . }}-application    
+  subject:
+    kind: User
+    name: {{ . }}    
 {{- end }}
 {{- end }}

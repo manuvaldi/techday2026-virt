@@ -32,3 +32,4 @@ vms:
   enabled: true
 
 enableUDN: false
+enableACM: false

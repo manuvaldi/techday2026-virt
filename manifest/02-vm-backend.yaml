@@ -1,0 +1,148 @@
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: cloud-init-backend
+stringData:
+  userdata: |
+    #cloud-config
+    system_info:
+      default_user:
+        name: fedora
+        plain_text_passwd: fedora
+        lock_passwd: false
+        sudo: ALL=(ALL) NOPASSWD:ALL
+    package_update: false
+    package_upgrade: false
+    packages:
+      - nano
+    write_files:
+      - path: /etc/containers/systemd/backend.container
+        content: |
+          [Unit]
+          Description=backend
+          StartLimitIntervalSec=0
+          [Container]
+          Image=quay.io/mvalledi/stock-example-app-backend:latest
+          ContainerName=backend
+          PublishPort=5000:5000
+          #Pull=Always
+          Environment=PYTHONUNBUFFERED=1
+          EnvironmentFile=/var/env/podman.env
+          Environment=REDIS_PORT=6379
+          [Service]
+          Restart=always
+          RestartSec=5s
+          TimeoutStartSec=10
+          ExecStartPre=/usr/bin/bash -c 'mkdir /var/env; mount /dev/vdc /var/env'
+          [Install]
+          WantedBy=multi-user.target default.target
+    runcmd:
+      - setenforce 0
+      - sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+      - systemctl daemon-reload
+      - systemctl start backend
+      - systemctl enable --now backend
+      - nmcli connection modify "cloud-init enp1s0" ipv4.dns-search "svc.clusterset.local, svc.cluster.local, clusterset.local, cluster.local" 
+      - nmcli connection up "cloud-init enp1s0"   
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  labels:
+    app: backend
+    kubevirt.io/dynamic-credentials-support: 'true'
+    vm.kubevirt.io/template: fedora-server-small
+    vm.kubevirt.io/template.namespace: openshift
+    vm.kubevirt.io/template.revision: '1'
+    vm.kubevirt.io/template.version: v0.34.1
+  name: backend
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        creationTimestamp: null
+        name: backend
+      spec:
+        source:
+            registry:
+              url: "docker://quay.io/containerdisks/fedora:43"
+        storage:
+          resources:
+            requests:
+              storage: 5Gi
+  runStrategy: RerunOnFailure
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: backend
+        kubevirt.io/size: small
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+            - disk:
+                bus: virtio
+              name: environment-disk
+              serial: O9RLWI              
+          interfaces:
+            - masquerade: {}
+              model: virtio
+              name: default
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.6.0
+        memory:
+          guest: 2Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      volumes:
+        - dataVolume:
+            name: backend
+          name: rootdisk
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            secretRef:
+              name: cloud-init-backend         
+        - configMap:
+            name: stock-parameters
+          name: environment-disk                      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    kubevirt.io/domain: backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000

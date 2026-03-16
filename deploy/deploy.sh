@@ -143,14 +143,23 @@ read_release_name() {
     RELEASE_NAME=${input_release:-$DEFAULT_RELEASE}
 }
 
-ask_acm_policy() {
-    read -p "Enable User Defined Network (UDN) policies for this deployment? (y/n): " acm_choice
-    if [[ "$acm_choice" == "y" ]]; then
-        ACM_FLAG="--set enableUDN=true"
+ask_extra_policies() {
+    EXTRA_FLAGS=""
+    
+    read -p "Enable User Defined Network (UDN) policies for this deployment? (y/n): " udn_choice
+    if [[ "$udn_choice" == "y" ]]; then
+        EXTRA_FLAGS+="--set enableUDN=true "
         echo "UDN policies enabled."
     else
-        ACM_FLAG=""
         echo "UDN policies disabled."
+    fi
+
+    read -p "Enable Advanced Cluster Management (ACM) global roles for users? (y/n): " acm_choice
+    if [[ "$acm_choice" == "y" ]]; then
+        EXTRA_FLAGS+="--set enableACM=true "
+        echo "ACM global roles enabled."
+    else
+        echo "ACM global roles disabled."
     fi
 }
 
@@ -282,36 +291,36 @@ deploy_default() {
     ensure_connected || return
     read_release_name
     get_default_users_only || return
-    ask_acm_policy
+    ask_extra_policies
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" $ACM_FLAG
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" $EXTRA_FLAGS
 }
 
 deploy_custom() {
     ensure_connected || return
     read_release_name
     get_users || return
-    ask_acm_policy
+    ask_extra_policies
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" $ACM_FLAG
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" $EXTRA_FLAGS
 }
 
 deploy_no_vms_default() {
     ensure_connected || return
     read_release_name
     get_default_users_only || return
-    ask_acm_policy
+    ask_extra_policies
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set vms.enabled=false $ACM_FLAG
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set vms.enabled=false $EXTRA_FLAGS
 }
 
 deploy_no_vms_custom() {
     ensure_connected || return
     read_release_name
     get_users || return
-    ask_acm_policy
+    ask_extra_policies
     generate_and_apply_passwords
-    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" --set vms.enabled=false $ACM_FLAG
+    helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" --set vms.enabled=false $EXTRA_FLAGS
 }
 
 uninstall_release() {

@@ -1,0 +1,127 @@
+- name: Set kubeconfig to VMWare
+  set_fact:
+    kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
+
+- name: Test connection to cluster
+  command: |
+    {{ ocp_path }}/oc cluster-info --kubeconfig "{{kubeconfig}}"
+  register: result
+  ignore_errors: yes
+
+- name: Show result
+  debug:
+    var: result.stdout
+
+- name: Crear install-config
+  ansible.builtin.template:
+    src: files/install-config.yaml.j2
+    dest: "/tmp/install-config.yaml"
+    mode: '0644'
+  when: result.rc != 0
+
+- name: Create OVA  
+  when: result.rc != 0 and skip_ova is not defined
+  block:
+    - name: Creates directory downloads
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/downloads"
+        state: directory
+        mode: '0755'
+      
+    - name: Download the ova file
+      get_url:
+        url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/latest/rhcos-vmware.x86_64.ova"
+        dest: "{{ playbook_dir }}/downloads/rhcos-vmware.x86_64.ova"
+        validate_certs: no
+      when: skip_ova is not defined and skip_download_ova is not defined
+
+    - name: Deploy the OVF template into the folder
+      vmware_deploy_ovf:
+        hostname: "{{ vsphere_hostname }}"
+        username: "{{ vsphere_username }}"
+        password: "{{ vsphere_password }}"
+        datacenter: "{{ vsphere_datacenter }}"
+        datastore: "{{ vsphere_datastore }}"
+        validate_certs: False
+        folder: "/{{vsphere_datacenter}}/vm/Workloads/{{vsphere_folder}}"
+        name: 'generate_ocp_template'
+        allow_duplicates: False
+        disk_provisioning: thin
+        networks: "{u'VM Network':u'{{ vsphere_network }}'}"
+        ova: "{{ playbook_dir }}/downloads/rhcos-vmware.x86_64.ova"
+        power_on: False
+      when: skip_ova is not defined and skip_deploy_ova is not defined
+
+    - name: Definir variables de entorno para govc
+      set_fact:
+        govc_auth:
+          GOVC_URL: "https://{{ vsphere_hostname }}/sdk"
+          GOVC_USERNAME: "{{ vsphere_username }}"
+          GOVC_PASSWORD: "{{ vsphere_password }}"
+          GOVC_INSECURE: "true"
+          GOVC_DATACENTER: "{{ vsphere_datacenter }}"
+      when: skip_ova is not defined
+
+    - name: Asegurar que el objeto sea una VM para poder editarlo
+      command: govc vm.markasvm "generate_ocp_template"
+      environment: "{{ govc_auth }}"
+      failed_when: false # Por si ya es una VM
+      when: skip_ova is not defined
+
+    - name: Habilitar Virtualización de Hardware (Nested HV)
+      command: govc vm.change -vm "generate_ocp_template" -nested-hv-enabled=true
+      environment: "{{ govc_auth }}"
+      when: skip_ova is not defined
+
+    - name: Convertir de nuevo a Template
+      command: govc vm.markastemplate "generate_ocp_template"
+      environment: "{{ govc_auth }}"
+      failed_when: false
+      when: skip_ova is not defined
+
+    - name: Validar configuración final
+      shell: govc vm.info -json "generate_ocp_template" | jq '.VirtualMachines[0].Config.NestedHVEnabled'
+      environment: "{{ govc_auth }}"
+      register: check_nested
+      changed_when: false
+      when: skip_ova is not defined
+
+    - name: Resultado
+      debug:
+        msg: "Nested HV habilitado en generate_ocp_template: {{ check_nested.stdout }}"
+      when: skip_ova is not defined
+
+- name: Set kubeconfig to VMWare
+  set_fact:
+    kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
+
+- name: Test connection to cluster
+  command: |
+    {{ ocp_path }}/oc cluster-info --kubeconfig "{{kubeconfig}}"
+  register: result
+  ignore_errors: yes
+
+# - name: Show result
+#   debug:
+#     var: result.stdout
+
+- name: Fail if cluster is not reachable
+  debug:
+    msg: "❌ No se puede conectar al cluster Kubernetes"
+  when: result.rc != 0
+
+- name: Crear cluster VMWare
+  ansible.builtin.shell: |
+    rm -Rf {{ocp_installation_path}}
+    mkdir {{ocp_installation_path}}
+    mv /tmp/install-config.yaml {{ocp_installation_path}}/
+    {{ ocp_path }}/openshift-install create cluster --dir {{ocp_installation_path}}
+    date
+  register: shell_output
+  when: result.rc != 0
+
+- name: Wait for bootstrap and install complete
+  ansible.builtin.shell:
+    cmd: |
+      {{ ocp_path }}/openshift-install wait-for bootstrap-complete --dir {{ocp_installation_path}}
+      {{ ocp_path }}/openshift-install wait-for install-complete --dir {{ocp_installation_path}}

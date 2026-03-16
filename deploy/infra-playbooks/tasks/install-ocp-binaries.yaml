@@ -1,0 +1,53 @@
+- name: Extract current version of openshift-install
+  shell: |
+    {{ ocp_path }}/openshift-install version | head -n 1 | grep 'openshift-install' | awk '{print $2}'
+  register: openshift_version_raw
+  changed_when: false
+
+- name: Download new binary 
+  when: openshift_version_raw.stdout != ocp_version
+  block:
+
+    - name: Create a directory for the openshift tools
+      ansible.builtin.file:
+        path: "{{ ocp_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check if openshift clients is downloaded
+      ansible.builtin.stat:
+        path: "{{ ocp_path }}/openshift-client-linux-{{ ocp_version }}.tar.gz"
+      register: openshift_clients
+
+    - name: Download openshift clients
+      ansible.builtin.get_url:
+        url: >-
+          https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_version }}/openshift-client-linux-{{ ocp_version }}.tar.gz
+        dest: "{{ ocp_path }}"
+        mode: '0755'
+      when: not openshift_clients.stat.exists
+
+    - name: Unpack openshift clients
+      ansible.builtin.unarchive:
+        src: "{{ ocp_path }}/openshift-client-linux-{{ ocp_version }}.tar.gz"
+        dest: "{{ ocp_path }}"
+
+    - name: Check if openshift installer is downloaded
+      ansible.builtin.stat:
+        path: "{{ ocp_path }}/openshift-install-linux-{{ ocp_version }}.tar.gz"
+      register: openshift_install
+
+    - name: Download openshift install file
+      ansible.builtin.get_url:
+        url: >-
+          https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ ocp_version }}/openshift-install-linux-{{ ocp_version }}.tar.gz
+        dest: "{{ ocp_path }}"
+        mode: '0777'
+      when: not openshift_install.stat.exists
+
+    - name: Unpack openshift install
+      ansible.builtin.unarchive:
+        remote_src: yes
+        src: "{{ ocp_path }}/openshift-install-linux-{{ ocp_version }}.tar.gz"
+        dest: "{{ ocp_path }}/"
+        mode: '0755'

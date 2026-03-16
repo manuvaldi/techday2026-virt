@@ -1,0 +1,10 @@
+---
+collections:
+  - name: community.vmware
+    version: 6.2.0
+
+  - name: kubernetes.core
+    version: 6.3.0    
+  
+  - name: azure.azcollection
+    version: 3.14.0

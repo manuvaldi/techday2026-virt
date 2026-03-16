@@ -1,0 +1,26 @@
+- name: CCLM - Obtener todos los ManagedClusters
+  k8s_info:
+    kubeconfig: "{{kubeconfig}}"    
+    api_version: cluster.open-cluster-management.io/v1
+    kind: ManagedCluster
+  register: managedclusters
+
+- name: CCLM - Añadir label a cada ManagedCluster
+  k8s:
+    kubeconfig: "{{kubeconfig}}"  
+    state: present
+    api_version: cluster.open-cluster-management.io/v1
+    kind: ManagedCluster
+    name: "{{ item.metadata.name }}"
+    definition:
+      metadata:
+        labels:
+          "acm/cnv-operator-install": "true"
+  loop: "{{ managedclusters.resources }}"
+
+
+- name: CCLM - Create custom role
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/acm-customclusterrole.yaml"

@@ -1,0 +1,9 @@
+- name: Set kubeconfig variable
+  set_fact:
+    kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
+
+- name: ACM - Install Web Terminal
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/web-terminal-policy.yaml"

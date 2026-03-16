@@ -1,0 +1,15 @@
+
+ocp_path: "{{ playbook_dir }}/downloads"
+
+ocp_version: 4.20.15
+odf_channel: stable-4.20
+acm_channel: release-2.16
+
+install_vmware_cluster: false
+install_azure_cluster: false
+acm: false
+odf: false
+crosscluster: false
+deploy_demo: false 
+odf_sc: thin-csi
+osd_size: 300Gi

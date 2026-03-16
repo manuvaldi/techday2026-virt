@@ -1,0 +1,87 @@
+
+apiVersion: rbac.open-cluster-management.io/v1beta1
+kind: MulticlusterRoleAssignment
+metadata:
+  name: role-assignment-devuser2-global-roles
+  namespace: open-cluster-management-global-set
+spec:
+  roleAssignments:
+
+  - clusterRole: acm-vm-extended:view
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: role-assignment-global-acm-vm-extended:view
+    targetNamespaces:
+    - devuser2-application    
+
+  - clusterRole: acm-vm-extended-noscope:view
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: role-assignment-global-acm-vm-extended-noscope:view
+
+  - clusterRole: acm-vm-cluster-migration:view
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: devuser2-acm-vm-cluster-migration:view
+
+  - clusterRole: kubevirt.io:admin
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: devuser2-kubevirt.io:admin
+    targetNamespaces:
+    - devuser2-application
+
+  - clusterRole: kubevirt.io:migrate
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: devuser2-kubevirt.io:migrate
+    targetNamespaces:
+    - devuser2-application
+
+  - clusterRole: acm-vm-fleet:admin
+    clusterSelection:
+      placements:
+      - name: global
+        namespace: open-cluster-management-global-set
+      type: placements
+    name: devuser2-acm-vm-fleet:admin
+
+  subject:
+    kind: User
+    name: devuser2        
+# ---
+# apiVersion: rbac.open-cluster-management.io/v1beta1
+# kind: MulticlusterRoleAssignment
+# metadata:
+#   name: role-assignment-devuser2-global-acm-vm-extended-view
+#   namespace: open-cluster-management-global-set
+# spec:
+#   roleAssignments:
+
+#   - clusterRole: acm-vm-extended:view
+#     clusterSelection:
+#       placements:
+#       - name: global
+#         namespace: open-cluster-management-global-set
+#       type: placements
+#     name: role-assignment-global-acm-vm-extended:view
+#     targetNamespaces:
+#     - devuser2-application    
+#   subject:
+#     kind: User
+#     name: devuser2    

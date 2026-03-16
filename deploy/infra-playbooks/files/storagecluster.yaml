@@ -1,0 +1,35 @@
+apiVersion: ocs.openshift.io/v1
+kind: StorageCluster
+metadata:
+  name: ocs-storagecluster
+  namespace: openshift-storage
+spec:
+  storageDeviceSets:
+    - count: 1
+      dataPVCTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: {{osd_size}}
+          storageClassName: {{odf_sc}}
+          volumeMode: Block
+      name: ocs-deviceset-{{odf_sc}}
+      placement: {}
+      portable: true
+      replica: 3
+      resources: {}
+  monDataDirHostPath: ''
+  managedResources:
+    cephBlockPools:
+      defaultStorageClass: true
+      defaultVirtualizationStorageClass: true
+  network:
+    connections:
+      encryption:
+        enabled: false
+  nodeTopologies:
+    arbiterLocation: ''
+  resourceProfile: lean
+  flexibleScaling: false

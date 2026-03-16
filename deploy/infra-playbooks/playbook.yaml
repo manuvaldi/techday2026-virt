@@ -1,0 +1,94 @@
+---
+- name: Configurar Virt, MTV, ACM...
+  hosts: localhost
+  become: false
+  vars_files:
+    - vars/default.yaml
+
+  collections:
+    - azure.azcollection
+    - community.vmware
+    - kubernetes.core
+
+  tasks:
+
+    - name: Install Openshift Install Binaries
+      include_tasks:
+        file: tasks/install-ocp-binaries.yaml 
+
+    ## VMWare cluster
+    - name: Install VMWare Cluster
+      include_tasks:
+        file: tasks/ocp-install-vmware.yaml
+      when: install_vmware_cluster|bool == true
+
+    - name: Set kubeconfig to VMWare
+      set_fact:
+        kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
+
+
+    - name: Install ODF
+      include_tasks:
+        file: tasks/ocp-odf.yaml
+      when: odf|bool == true
+
+    - name: Install ACM
+      include_tasks:
+        file: tasks/ocp-acm.yaml
+      when: acm|bool == true
+
+## Azure Cluster
+    - name: Create Azure Cluster
+      include_tasks:
+        file: tasks/ocp-install-azure.yaml
+      when: install_azure_cluster|bool == true
+
+    - name: Install ODF
+      include_tasks:
+        file: tasks/ocp-odf.yaml
+      when: install_azure_cluster|bool == true and odf|bool == true
+      vars:
+        kubeconfig: "/tmp/{{ azure_cluster_name }}-kubeconfig"
+        odf_sc: managed-csi
+
+
+## Integration for crossclustermigration: Submariner & CCLM
+
+    - name: Configure Submariner
+      include_tasks:
+        file: tasks/ocp-submariner.yaml
+      when: submariner|bool == true
+
+    - name: Cross Cluster Enable 
+      include_tasks:
+        file: tasks/ocp-crosscluster-enable.yaml
+      when: acm|bool == true and crosscluster|bool == true
+
+## Deploy web terminal (policy)
+
+    - name: ACM - Create all clusters things (webterminal, policies, clustersets, etc)
+      include_tasks:
+        file: tasks/ocp-acm-allclusters.yaml
+      when: acm|bool == true
+
+## Relabel local cluster from vmware to "baremetal"
+    - name: Relabel local-cluster to Baremetal
+      k8s:
+        kubeconfig: "{{kubeconfig}}"  
+        state: present
+        api_version: cluster.open-cluster-management.io/v1
+        kind: ManagedCluster
+        name: "local-cluster"
+        definition:
+          metadata:
+            labels:
+              "cloud": "Baremetal"
+
+## Deploy example:
+
+    - name: Cross Cluster Migration Demo Deployment
+      include_tasks:
+        file: tasks/ocp-demo.yaml
+      when: deploy_demo|bool == true
+
+

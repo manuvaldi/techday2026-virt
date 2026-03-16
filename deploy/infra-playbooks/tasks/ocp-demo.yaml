@@ -1,0 +1,70 @@
+- name: Demo - Deploy local-cluster VM
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/demo-deployment.yaml"
+  vars:
+    clustername: "local-cluster"
+
+# - name: Test TEmplate
+#   ansible.builtin.template:
+#     src: "files/demo-deployment.yaml"
+#     dest: /tmp/template
+#   vars:
+#     clustername: "local-cluster"
+
+- name: "Demo - Deploy {{ azure_cluster_name }} VM"
+  kubernetes.core.k8s:
+    kubeconfig: "/tmp/{{ azure_cluster_name }}-kubeconfig"
+    state: present
+    template: "files/demo-deployment.yaml"
+  vars:
+    clustername: "{{ azure_cluster_name }}"
+
+- name: Obtener ConfigMap cloud-provider-config
+  kubernetes.core.k8s_info:
+    kubeconfig: "/tmp/{{ azure_cluster_name }}-kubeconfig"
+    api_version: v1
+    kind: ConfigMap
+    name: cloud-provider-config
+    namespace: openshift-config
+  register: cloud_config
+
+- name: Mostrar config completa (debug opcional)
+  debug:
+    var: cloud_config.resources[0].data.config
+
+- name: Parsear config de Azure a variable
+  set_fact:
+    azure_cloud_config: "{{ cloud_config.resources[0].data.config | from_yaml }}"
+
+- name: Extraer Resource Group
+  set_fact:
+    cluster_azure_resource_group: "{{ azure_cloud_config.resourceGroup }}"
+
+- name: Mostrar Resource Group
+  debug:
+    msg: "El Resource Group del cluster es: {{ cluster_azure_resource_group }}"
+
+- name: Crear Public IP
+  azure_rm_publicipaddress:
+    resource_group: "{{ cluster_azure_resource_group }}"
+    name: monitoring-app-public-ip
+    location: "{{azure_cluster_region}}"
+    allocation_method: Static      # Static o Dynamic
+    sku: Standard                   # Basic o Standard
+    version: ipv4
+    client_id: "{{ azure_client_id }}"
+    secret: "{{ azure_client_secret }}"
+    subscription_id: "{{ azure_subscription_id }}"
+    tenant: "{{ azure_tenant_id }}"
+  register: monitoring_app_public_ip
+
+- debug:
+    var: monitoring_app_public_ip.state.ip_address
+
+- name: "Demo - Deploy HAProxy Loadbalancer en Azure"
+  kubernetes.core.k8s:
+    kubeconfig: "/tmp/{{ azure_cluster_name }}-kubeconfig"
+    state: present
+    template: "files/demo-loadbalancer.yaml"

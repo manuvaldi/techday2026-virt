@@ -1,0 +1,73 @@
+apiVersion: addon.open-cluster-management.io/v1alpha1
+kind: ManagedClusterAddOn
+metadata:
+  name: submariner
+  namespace: {{azure_cluster_name}}
+spec:
+  installNamespace: submariner-operator
+---
+apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
+kind: SubmarinerConfig
+metadata:
+  name: submariner
+  namespace: {{azure_cluster_name}}
+spec:
+  gatewayConfig:
+    gateways: 1
+    azure:
+      instanceType: {{azure_submariner_worker_size | default(azure_worker_size)}}
+  IPSecNATTPort: 4500
+  airGappedDeployment: false
+  NATTEnable: true
+  cableDriver: libreswan
+  globalCIDR: ""
+  loadBalancerEnable: true
+  credentialsSecret:
+    name: "{{azure_cluster_name}}-azure-creds"
+  insecureBrokerConnection: true    
+  subscriptionConfig:
+    channel: stable-0.21
+    installPlanApproval: automatic
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+
+---
+apiVersion: addon.open-cluster-management.io/v1alpha1
+kind: ManagedClusterAddOn
+metadata:
+  name: submariner
+  namespace: local-cluster
+spec:
+  installNamespace: submariner-operator
+---
+apiVersion: submarineraddon.open-cluster-management.io/v1alpha1
+kind: SubmarinerConfig
+metadata:
+  name: submariner
+  namespace: local-cluster
+spec:
+  gatewayConfig:
+    gateways: 1
+  IPSecNATTPort: 4500
+  airGappedDeployment: false
+  NATTEnable: true
+  cableDriver: libreswan
+  globalCIDR: ""
+  insecureBrokerConnection: true
+  subscriptionConfig:
+    channel: stable-0.21
+    installPlanApproval: automatic
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+
+---
+apiVersion: submariner.io/v1alpha1
+kind: Broker
+metadata:
+  name: submariner-broker
+  namespace: default-broker
+  labels:
+    cluster.open-cluster-management.io/backup: submariner
+spec:
+  globalnetEnabled: false
+  globalnetCIDRRange: ""

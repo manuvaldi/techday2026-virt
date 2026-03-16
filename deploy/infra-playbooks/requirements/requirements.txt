@@ -1,0 +1,6 @@
+pyvmomi>=9.0.0.0
+setuptools
+azure-cli==2.83.0
+kubernetes==35.0.0
+PyYAML>=6.0.2
+passlib==1.7.4

@@ -1,0 +1,38 @@
+---
+- name: Configurar Virt, MTV, ACM
+  hosts: localhost
+  become: no
+  vars_files:
+    - vars/default.yaml
+
+  collections:
+    - azure.azcollection
+    - community.vmware
+    - kubernetes.core
+
+  tasks:
+
+    - name: Remove the ClusterDeployment resource
+      kubernetes.core.k8s:
+        kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
+        state: absent
+        api_version: hive.openshift.io/v1
+        kind: ClusterDeployment
+        name: "{{ azure_cluster_name }}"
+        namespace: "{{ azure_cluster_name }}"
+        wait: yes
+        wait_timeout: 1200
+      register: destroy_result
+
+    - name: Debug destruction status
+      ansible.builtin.debug:
+        msg: "The cluster {{ azure_cluster_name }} is being deprovisioned."
+      when: destroy_result.changed
+  
+    - name: Execute openshift-install destroy cluster
+      ansible.builtin.command:
+        cmd: "{{ ocp_path }}/openshift-install destroy cluster --dir {{ ocp_installation_path }}"
+      register: destroy_output
+      changed_when: "'Deleted' in destroy_output.stdout"
+      async: 1800 
+      poll: 30

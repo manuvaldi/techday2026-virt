@@ -1,0 +1,116 @@
+- name: Obtener nodos Kubernetes
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    kind: Node
+  register: k8s_nodes_info
+
+- set_fact:
+    k8s_workers: >-
+      {{
+        k8s_nodes_info.resources
+        | rejectattr('metadata.labels', 'contains', 'node-role.kubernetes.io/control-plane')
+        | map(attribute='metadata.name')
+        | list
+      }}
+
+- name: ODF - Adding Ceph labels to worker nodes
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: patched
+    api_version: v1
+    kind: Node
+    name: "{{ item }}"
+    definition:
+      apiVersion: v1
+      kind: Node
+      name: "{{ item }}"
+      metadata:
+        labels:
+          cluster.ocs.openshift.io/openshift-storage: ''
+  loop: "{{ k8s_workers }}"
+
+- name: ODF - Install ODF Operator
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/odf-operator.yaml"
+
+
+- name: ODF - Wait for the CRD storagecluster to become available
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: storageclusters.ocs.openshift.io
+  register: r_crd_storageclusters
+  retries: 200
+  delay: 10
+  until:
+  - r_crd_storageclusters.resources is defined
+  - r_crd_storageclusters.resources | list | length == 1
+
+- name: ODF - Wait for the console plugin to become available
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: console.openshift.io/v1
+    kind: ConsolePlugin
+    name: odf-console
+  register: r_console_plugin
+  retries: 200
+  delay: 10
+  until: r_console_plugin.resources | list | length == 1
+
+
+
+- name: Create the ODF StorageCluster
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/storagecluster.yaml"
+
+
+- name: Wait for the StorageClasses rbd to become available
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: "ocs-storagecluster-ceph-rbd"
+  register: sc_crd
+  retries: 200
+  delay: 10
+  until: sc_crd.resources | list | length == 1
+
+- name: Wait for the StorageClasses object to become available
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: "openshift-storage.noobaa.io"
+  register: sc_crd
+  retries: 200
+  delay: 10
+  until: sc_crd.resources | list | length == 1
+
+
+- name: Obtener todas las StorageClass
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    kind: StorageClass
+  register: storageclasses
+
+- name: Quitar default storageclass excepto ocs-storagecluster-ceph-rbd
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: patched
+    kind: StorageClass
+    name: "{{ item.metadata.name }}"
+    definition:
+      metadata:
+        annotations:
+          storageclass.kubernetes.io/is-default-class: null
+  loop: >-
+    {{
+      storageclasses.resources
+      | rejectattr('metadata.name', 'equalto', 'ocs-storagecluster-ceph-rbd')
+      | list
+    }}

@@ -1,0 +1,23 @@
+- name: Submariner - Install Addon Submariner and Config
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/submariner.yaml"
+
+- name: Submariner - Wait until SubmarinerConfig is installed
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: submarineraddon.open-cluster-management.io/v1alpha1
+    kind: SubmarinerConfig
+    name: submariner
+    namespace: "{{item}}"
+    wait: true
+    wait_sleep: 10
+    wait_timeout: 1200
+    wait_condition:
+      reason: "Success"
+      type: "SubmarinerGatewaysLabeled"
+      status: "True"
+  loop:
+    - local-cluster
+    - cloud

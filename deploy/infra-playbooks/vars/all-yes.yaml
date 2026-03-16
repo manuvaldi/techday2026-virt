@@ -1,0 +1,9 @@
+install_vmware_cluster: true
+install_azure_cluster: true
+cnv: true
+mtv: true
+acm: true
+odf: true
+submariner: true
+mtv_integration: true
+deploy_demo: true 

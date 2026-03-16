@@ -1,0 +1,185 @@
+# Base64 encoding of install-config yaml
+{% set contenido_install_config -%}
+apiVersion: v1
+metadata:
+  name: '{{azure_cluster_name}}'
+baseDomain: {{azure_base_domain}}
+controlPlane:
+  hyperthreading: Enabled
+  name: master
+  replicas: 3
+  platform:
+    azure:
+      osDisk:
+        diskSizeGB: 1024
+        type:  Standard_D4s_v3
+compute:
+- hyperthreading: Enabled
+  name: 'worker'
+  replicas: 3
+  platform:
+    azure:
+      type: {{azure_worker_size}}
+      osDisk:
+        diskSizeGB: 128
+        zones:
+        - "1"
+        - "2"
+        - "3"
+networking:
+  networkType: OVNKubernetes
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 10.0.0.0/16
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  azure:
+    baseDomainResourceGroupName: {{azure_resource_group}}
+    cloudName: {{azure_cloud_name}}
+    region: {{azure_cluster_region}}
+pullSecret: ""
+sshKey: {{sshKey}}
+{%- endset -%}
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: {{azure_cluster_name}}
+  name: {{azure_cluster_name}}
+spec: {}
+---
+apiVersion: hive.openshift.io/v1
+kind: ClusterDeployment
+metadata:
+  name: '{{azure_cluster_name}}'
+  namespace: '{{azure_cluster_name}}'
+  labels:
+    cloud: 'Azure'
+    region: '{{azure_cluster_region}}'
+    vendor: OpenShift
+    cluster.open-cluster-management.io/clusterset: 'default'
+spec:
+  baseDomain: {{azure_base_domain}}
+  clusterName: '{{azure_cluster_name}}'
+  controlPlaneConfig:
+    servingCertificates: {}
+  installAttemptsLimit: 1
+  installed: false
+  platform:
+    azure:
+      baseDomainResourceGroupName: {{azure_resource_group}}
+      credentialsSecretRef:
+        name: {{azure_cluster_name}}-azure-creds
+      region: {{azure_cluster_region}}
+      cloudName: {{azure_cloud_name}}
+  provisioning:
+    installConfigSecretRef:
+      name: {{azure_cluster_name}}-install-config
+    sshPrivateKeySecretRef:
+      name: {{azure_cluster_name}}-ssh-private-key
+    imageSetRef:
+      name: img{{ocp_version}}-multi-appsub
+  pullSecretRef:
+    name: {{azure_cluster_name}}-pull-secret
+---
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  labels:
+    cloud: Azure
+    region: {{azure_cluster_region}}
+    name: '{{azure_cluster_name}}'
+    vendor: OpenShift
+    cluster.open-cluster-management.io/clusterset: 'default'
+  name: '{{azure_cluster_name}}'
+spec:
+  hubAcceptsClient: true
+---
+apiVersion: hive.openshift.io/v1
+kind: MachinePool
+metadata:
+  name: {{azure_cluster_name}}-worker
+  namespace: '{{azure_cluster_name}}'
+spec:
+  clusterDeploymentRef:
+    name: '{{azure_cluster_name}}'
+  name: worker
+  platform:
+    azure:
+      osDisk:
+        diskSizeGB: 128
+      type: {{azure_worker_size}}
+      zones:
+      - "1"
+      - "2"
+      - "3"
+  replicas: 3
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{azure_cluster_name}}-pull-secret
+  namespace: '{{azure_cluster_name}}'
+stringData:
+  .dockerconfigjson: |-
+    {{pullsecret}}
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{azure_cluster_name}}-install-config
+  namespace: '{{azure_cluster_name}}'
+type: Opaque
+data:
+  install-config.yaml: {{ contenido_install_config | b64encode }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{azure_cluster_name}}-ssh-private-key
+  namespace: '{{azure_cluster_name}}'
+stringData:
+  ssh-privatekey: |
+    {{sshprivatekey | indent(4)}}
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{azure_cluster_name}}-azure-creds
+  namespace: '{{azure_cluster_name}}'
+stringData:
+  osServicePrincipal.json: |-
+  {% set datos = {
+        "clientId": azure_client_id,
+        "clientSecret": azure_client_secret,
+        "tenantId": azure_tenant_id,
+        "subscriptionId": azure_subscription_id
+    } %}
+    {{ datos | to_json | indent(4, first=True) }}
+---
+apiVersion: agent.open-cluster-management.io/v1
+kind: KlusterletAddonConfig
+metadata:
+  name: '{{azure_cluster_name}}'
+  namespace: '{{azure_cluster_name}}'
+spec:
+  clusterName: '{{azure_cluster_name}}'
+  clusterNamespace: '{{azure_cluster_name}}'
+  clusterLabels:
+    cloud: Azure
+    vendor: OpenShift
+  applicationManager:
+    enabled: true
+  policyController:
+    enabled: true
+  searchCollector:
+    enabled: true
+  certPolicyController:
+    enabled: true

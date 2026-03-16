@@ -1,0 +1,159 @@
+- name: ACM - Install ACM Operator
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/acm.yaml"
+
+
+- name: ACM -  Wait for the CRD MulticlusterHub to become available
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: multiclusterhubs.operator.open-cluster-management.io
+  register: r_crd_multiclusterhub
+  retries: 200
+  delay: 10
+  until:
+  - r_crd_multiclusterhub.resources is defined
+  - r_crd_multiclusterhub.resources | list | length == 1
+
+- name: ACM -  Create MulticlusterHub Cluster
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    definition: "{{ lookup('file', 'files/acm-multiclusterhub.yaml') | from_yaml_all }}"
+  retries: 20
+  delay: 10
+
+
+- name: Wait for MultiClusterHub to reach Running phase
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"  
+    api_version: operator.open-cluster-management.io/v1
+    kind: MultiClusterHub
+    name: multiclusterhub
+    namespace: open-cluster-management
+  register: mch_status
+  # Retries until the phase is explicitly 'Running'
+  until:
+    - mch_status.resources | length > 0
+    - mch_status.resources[0].status.phase is defined
+    - mch_status.resources[0].status.phase == "Running"
+  retries: 60
+  delay: 10
+
+
+
+# - name: Obtener todos los ManagedClusters
+#   k8s_info:
+#     kubeconfig: "{{kubeconfig}}"    
+#     api_version: cluster.open-cluster-management.io/v1
+#     kind: ManagedCluster
+#   register: managedclusters
+
+# - name: Añadir label a cada ManagedCluster
+#   k8s:
+#     kubeconfig: "{{kubeconfig}}"  
+#     state: present
+#     api_version: cluster.open-cluster-management.io/v1
+#     kind: ManagedCluster
+#     name: "{{ item.metadata.name }}"
+#     definition:
+#       metadata:
+#         labels:
+#           "acm/cnv-operator-install": "true"
+#   loop: "{{ managedclusters.resources }}"
+
+# - name: ACM - Add kubevirt permissions ACM-MTV integration
+#   kubernetes.core.k8s:
+#     kubeconfig: "{{kubeconfig}}"
+#     state: present
+#     template: "files/acm-mtv-integration-permissions.yaml"
+#   loop: "{{ managedclusters.resources }}"
+
+
+
+
+# - name: ACM -  Wait until HyperConverged is installed
+#   kubernetes.core.k8s_info:
+#     kubeconfig: "{{kubeconfig}}"
+#     api_version: hco.kubevirt.io/v1beta1
+#     kind: HyperConverged
+#     name: kubevirt-hyperconverged
+#     namespace: openshift-cnv
+#     wait: true
+#     wait_sleep: 10
+#     wait_timeout: 1200
+#     wait_condition:
+#       reason: "ReconcileCompleted"
+#       type: "Available"
+#       status: "True"
+
+# - name: Patch the storage profiles matching the default storage class to use pvc instead of snapshot
+#   kubernetes.core.k8s:
+#     kubeconfig: "{{kubeconfig}}"
+#     state: patched
+#     api_version: cdi.kubevirt.io/v1beta1
+#     kind: StorageProfile
+#     name: "{{item}}"
+#     definition:
+#       spec:
+#         dataImportCronSourceFormat: pvc
+#   loop:
+#     - "ocs-storagecluster-ceph-rbd"
+#     - "px-csi"
+#   failed_when: false
+
+
+#
+# - name: Install virtctl to Hypervisor/Bastion
+#   block:
+#   - name: Get virtctl-clidownloads-kubevirt-hyperconverged ConsoleCLIDownload
+#     kubernetes.core.k8s_info:
+#       kubeconfig: "{{kubeconfig}}"
+#       api_version: console.openshift.io/v1
+#       kind: ConsoleCLIDownload
+#       name: virtctl-clidownloads-kubevirt-hyperconverged
+#     register: r_virtctl_cli_download
+#     retries: 20
+#     delay: 10
+#     ignore_errors: true
+#     until:
+#     - r_virtctl_cli_download.resources is defined
+#     - r_virtctl_cli_download.resources | length > 0
+#
+#   - name: Get virtctl download URL from ConsoleCLIDownload
+#     when: r_virtctl_cli_download.resources | length > 0
+#     ansible.builtin.set_fact:
+#       _ocp4_workload_kubevirt_virtctl_url: >-
+#         {{ r_virtctl_cli_download.resources[0] | to_json | from_json
+#         | json_query("spec.links[?contains(href,'linux')].href") | first }}
+#
+#   - name: Download virtctl cli tool
+#     ansible.builtin.get_url:
+#       url: "{{ _ocp4_workload_kubevirt_virtctl_url }}"
+#       validate_certs: false
+#       dest: /tmp/virtctl.tar.gz
+#       mode: "0660"
+#     register: r_virtctl
+#     until: r_virtctl is success
+#     retries: 20
+#     delay: 10
+#
+#   - name: Install virtctl CLI on bastion
+#     become: true
+#     ansible.builtin.unarchive:
+#       src: /tmp/virtctl.tar.gz
+#       remote_src: true
+#       dest: /usr/bin
+#       mode: "0775"
+#       owner: root
+#       group: root
+#     args:
+#       creates: /usr/bin/virtctl
+#
+#   - name: Remove downloaded file
+#     ansible.builtin.file:
+#       state: absent
+#       path: /tmp/virtctl.tar.gz

@@ -1,0 +1,149 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: loadbalancer
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: static-ip-lb
+  namespace: loadbalancer
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-resource-group: "{{cluster_azure_resource_group}}"
+spec:
+  loadBalancerIP: {{monitoring_app_public_ip.state.ip_address}}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer
+  selector:
+    app: haproxy
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: haproxy-config
+  namespace: loadbalancer
+data:
+  haproxy.cfg: |
+    global
+      log stdout format raw local0 debug
+      maxconn 4096
+      tune.ssl.default-dh-param 2048
+
+
+    defaults
+      log global
+      mode http
+      option httplog
+      option dontlognull
+      # Socket.IO-friendly timeouts
+      timeout connect 2s
+      timeout client 1h
+      timeout server 1h
+      timeout http-keep-alive 1m
+
+    # ----------------
+    # FRONTEND HTTP
+    # ----------------
+    frontend http_front
+      bind *:8080
+
+      # 1. Fuerza a cerrar la conexión con el cliente tras cada respuesta
+      # Esto elimina el Keep-Alive: el cliente debe reconectar para cada petición.
+      option httpclose
+
+      # 2. Timeouts de cliente muy cortos (agresivos)
+      timeout client 2s         # El cliente tiene 2s para enviar algo o se corta
+      timeout http-request 1s   # La petición completa debe llegar en < 2s
+      timeout http-keep-alive 1s # Si hay keep-alive, solo dura 1s de inactividad
+
+      # WebSocket Upgrade
+      acl is_websocket hdr(Upgrade) -i WebSocket
+      use_backend bk_https if is_websocket
+
+      default_backend bk_https
+
+    # ----------------
+    # BACKEND HTTPS
+    # ----------------
+    backend bk_https
+      balance roundrobin
+      option httpchk
+      option http-server-close
+
+      http-request set-header X-Forwarded-Proto http
+
+      # Health check HTTP moderno
+      http-check send meth GET uri /health ver HTTP/1.1 hdr Host ohmylab.ocplabs.net.eu.org
+      http-check expect status 200
+
+    # Tiempos de respuesta y reintentos mínimos
+      timeout check 200ms
+      default-server inter 500ms fall 1 rise 1
+
+      # Sticky sessions para Socket.IO
+      cookie SRV insert indirect nocache
+
+      server vmware router-default.apps.4kmsc.dynamic.redhatworkshops.io:443 ssl verify none check cookie vmware
+      server azure  router-default.apps.cloud.nh92c.azure.redhatworkshops.io:443 ssl verify none check cookie azure
+
+      # WebSocket header opcional
+      http-response set-header X-Served-By %[srv_name]
+
+    # ----------------
+    # STATS PAGE
+    # ----------------
+    listen stats
+      bind *:8404
+      stats enable
+      stats uri /stats
+      stats refresh 5s
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: haproxy
+  namespace: loadbalancer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: haproxy
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: haproxy
+    spec:
+      volumes:
+        - name: haproxy-config
+          configMap:
+            name: haproxy-config
+            defaultMode: 420
+        - name: log-volume
+          emptyDir: {}
+      containers:
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: haproxy
+          command:
+            - /bin/sh
+            - '-c'
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: haproxy-config
+              mountPath: /usr/local/etc/haproxy/haproxy.cfg
+              subPath: haproxy.cfg
+            - name: log-volume
+              mountPath: /var/log
+          terminationMessagePolicy: File
+          image: 'haproxy:2.9'
+          args:
+            - haproxy -f /usr/local/etc/haproxy/haproxy.cfg -db > /var/log/haproxy.log 2>&1
+      restartPolicy: Always

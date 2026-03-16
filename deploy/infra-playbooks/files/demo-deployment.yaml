@@ -1,0 +1,278 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: cross-cluster-demo
+    name: cross-cluster-demo
+  name: cross-cluster-demo
+---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: admin-default-sa
+#   namespace: cross-cluster-demo
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: admin
+# subjects:
+# - kind: ServiceAccount
+#   name: default
+#   namespace: cross-cluster-demo
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: cluster-admin-default-sa
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: cluster-admin
+# subjects:
+# - kind: ServiceAccount
+#   name: default
+#   namespace: cross-cluster-demo
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: my-config
+#   namespace: cross-cluster-demo
+# data:
+#   MIVAR: "Hola desde el ConfigMap 🚀 en {{clustername}}"
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: apache-message
+#   namespace: cross-cluster-demo
+# data:
+#   script.sh: |
+#     #!/bin/bash
+#
+#     set -e
+#
+#     MIVAR_VALOR=$(curl -k https://kubernetes.default.svc.cluster.local:443/console | sed -n 's/.*apps\.\([^.]*\)\..*/\1/p')
+#     echo "MIVAR obtenido desde Kubernetes: $MIVAR_VALOR"
+#     echo "$MIVAR_VALOR" > /var/run/watched.txt
+#     # if [ "$MIVAR_VALOR" == "" ]; then
+#     #   echo "Reiniciando NM"
+#     #   systemctl reset-failed NetworkManager
+#     #   systemctl restart NetworkManager
+#     # fi
+# ---
+{% if clustername == "local-cluster" %}
+kind: Secret
+apiVersion: v1
+metadata:
+  name: cloud-init
+  namespace: cross-cluster-demo
+stringData:
+  userdata: |
+    #cloud-config
+    system_info:
+      default_user:
+        name: fedora
+        plain_text_passwd: fedora
+        lock_passwd: false
+        sudo: ALL=(ALL) NOPASSWD:ALL
+    package_update: false
+    package_upgrade: false
+    packages:
+      # - httpd
+      - nano
+    write_files:
+      - path: /opt/detect_migration.sh
+        content: |
+          #!/bin/bash
+          THRESHOLD_MS=100   # umbral de detección
+          INTERVAL=1         # segundos entre chequeos
+          while true; do
+              START=$(date +%s%3N)   # tiempo en milisegundos
+              sleep $INTERVAL
+              END=$(date +%s%3N)
+              DIFF=$((END - START - INTERVAL*1000))
+              if [ $DIFF -gt $THRESHOLD_MS ]; then
+                  echo "Posible migración detectada: salto de $DIFF ms. Executing corrections"
+                  resolvectl flush-caches
+                  systemctl restart NetworkManager.service
+              fi
+          done
+
+      - path: /etc/systemd/system/migration-monitor.service
+        content: |
+          [Unit]
+          Description=Monitor de migración de VM
+          After=network.target
+          [Service]
+          Type=simple
+          ExecStart=/bin/bash /opt/detect_migration.sh
+          Restart=always
+          RestartSec=5
+          User=root
+          Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          [Install]
+          WantedBy=multi-user.target
+
+      - path: /opt/script.sh
+        content: |
+          #!/bin/bash
+          MIVAR_VALOR=$(curl --connect-timeout 5 --max-time 10 -sk https://kubernetes.default.svc.cluster.local:443/console | sed -n 's/.*apps\.\([^.]*\)\..*/\1/p')
+          echo "MIVAR obtenido desde Kubernetes: $MIVAR_VALOR"
+          if [ "$MIVAR_VALOR" == "" ]; then
+            resolvectl flush-caches
+            systemctl restart NetworkManager.service
+          fi
+          echo "$MIVAR_VALOR" > /var/run/watched.txt
+      - path: /etc/systemd/system/my-script.service
+        content: |
+          [Unit]
+          Description=Ejecucion script recurrente
+          Wants=network-online.target
+          After=network-online.target
+          [Service]
+          Type=simple
+          EnvironmentFile=/etc/environment
+          ExecStart=/bin/bash /opt/script.sh
+      - path: /etc/systemd/system/my-script.timer
+        content: |
+          [Unit]
+          Description=Ejecutar mi proceso cada segundo
+          [Timer]
+          OnBootSec=30s
+          OnUnitActiveSec=2s
+          AccuracySec=10ms
+          [Install]
+          WantedBy=timers.target
+      - path: /etc/containers/systemd/live-migration-demo-app.container
+        content: |
+          [Unit]
+          Description=Live migration demo app container
+          StartLimitIntervalSec=0
+          [Container]
+          Image=quay.io/mvalledi/live-migration-demo-app:latest
+          ContainerName=live_migration_demo_app
+          PublishPort=8080:3000
+          Volume=/var/run/watched.txt:/app/watched.txt
+          Pull=Always
+          Environment=HOSTNAME_CUSTOM=%H
+          [Service]
+          Restart=always
+          RestartSec=5s
+          TimeoutStartSec=10
+          [Install]
+          WantedBy=multi-user.target default.target
+    runcmd:
+      - setenforce 0
+      - sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+      - systemctl daemon-reload
+      - touch /var/run/watched.txt
+      - systemctl enable --now my-script.timer
+      - systemctl start live-migration-demo-app
+      - systemctl enable --now live-migration-demo-app
+      - systemctl start migration-monitor.service
+      - systemctl enable --now migration-monitor.service
+
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: live-monitoring-app
+  namespace: cross-cluster-demo
+  labels:
+    app: monitoring-app-service
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        creationTimestamp: null
+        name: live-monitoring-app
+      spec:
+        source:
+            registry:
+              url: "docker://quay.io/containerdisks/fedora:43"
+        storage:
+          resources:
+            requests:
+              storage: 5Gi
+  runStrategy: RerunOnFailure
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: live-monitoring-app
+        app: monitoring-app-service
+    spec:
+      domain:
+        cpu:
+          cores: 2
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+        resources:
+          requests:
+            memory: 2Gi
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: live-monitoring-app
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            secretRef:
+              name: cloud-init
+{% endif %}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring-app-service
+  namespace: cross-cluster-demo
+spec:
+  selector:
+    app: monitoring-app-service
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: monitoring-app
+  namespace: cross-cluster-demo
+spec:
+  host: ohmylab.ocplabs.net.eu.org
+  to:
+    kind: Service
+    name: monitoring-app-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow
+  wildcardPolicy: None
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: router-test
+  namespace: cross-cluster-demo
+spec:
+  to:
+    kind: Service
+    name: monitoring-app-service
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow
+  wildcardPolicy: None

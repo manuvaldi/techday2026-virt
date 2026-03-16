@@ -1,0 +1,77 @@
+- name: Azure - Create cloud credentials
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/azure-cloud-credentials.yaml.j2"
+
+- name: "Azure - Buscar el ClusterDeployment {{azure_cluster_name}}"
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: hive.openshift.io/v1
+    kind: ClusterDeployment
+    name: "{{azure_cluster_name}}"
+    namespace: "{{azure_cluster_name}}"
+  register: clusterdeployment_info
+
+- name: Azure - Create cluster
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"
+    state: present
+    template: "files/azure-cloud-deployment.yaml.j2"
+  when: clusterdeployment_info.resources | length == 0
+
+- name: "Azure - Waiting admin kubeconfig spec in ClusterDeployment for {{azure_cluster_name}}"
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: hive.openshift.io/v1
+    kind: ClusterDeployment
+    name: "{{azure_cluster_name}}"
+    namespace: "{{azure_cluster_name}}"
+  register: clusterdeployment_info
+  until: clusterdeployment_info.resources[0].spec.clusterMetadata.adminKubeconfigSecretRef.name is defined
+  retries: 200
+  delay: 10
+
+- name: "Azure - Guardar el nombre del Secret admin kubeconfig"
+  set_fact:
+    clusterdeployment_secret: >-
+      {{ clusterdeployment_info.resources[0].spec.clusterMetadata.adminKubeconfigSecretRef.name }}
+
+
+- name: Show ClusterDeployment kubeconfig secret
+  debug:
+    msg: "Secret del ClusterDeployment '{{ azure_cluster_name }}': {{ clusterdeployment_secret }}"
+
+- name: "Azure - Obtener el Secret admin kubeconfig"
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    kind: Secret
+    namespace: "{{ azure_cluster_name }}"
+    name: "{{ clusterdeployment_secret }}"
+  register: kubeconfig_secret
+
+- name: "Azure - Guardar kubeconfig decodificado en variable"
+  set_fact:
+    managedcluster_kubeconfig_content: >-
+      {{ kubeconfig_secret.resources[0].data.kubeconfig | b64decode }}
+
+- name: "Azure - Guardar kubeconfig en fichero temporal -> /tmp/{{ azure_cluster_name }}-kubeconfig"
+  copy:
+    content: "{{ managedcluster_kubeconfig_content }}"
+    dest: "/tmp/{{ azure_cluster_name }}-kubeconfig"
+    mode: '0600'
+
+- name: Wait until 3 workers are Ready
+  shell: >
+    kubectl get nodes --kubeconfig /tmp/{{ azure_cluster_name }}-kubeconfig
+    -l node-role.kubernetes.io/worker
+    --no-headers | grep -w Ready | wc -l
+  register: azure_ready_workers
+  until: azure_ready_workers.stdout | int >= 3
+  retries: 200
+  delay: 20
+  changed_when: false
+
+- name: Show ready workers
+  debug:
+    msg: "Workers Ready: {{ azure_ready_workers.stdout }}"

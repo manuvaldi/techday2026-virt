@@ -11,7 +11,7 @@ SHOWROOM_VALUES="values.yaml"
 mkdir -p ./kubeconfigs
 
 ensure_connected() {
-    if ! oc whoami >/dev/null 2>&1; then
+    if ! oc whoami --request-timeout=2s >/dev/null 2>&1; then
         echo "Error: Not connected to any cluster. Please use Option 9 to connect first."
         return 1
     fi
@@ -43,11 +43,11 @@ cluster_management_menu() {
                 read -p "Select a number to switch (or Enter to cancel): " conf_idx
                 if [[ "$conf_idx" =~ ^[0-9]+$ ]] && [ "$conf_idx" -gt 0 ] && [ "$conf_idx" -le "${#configs[@]}" ]; then
                     export KUBECONFIG="$(pwd)/${configs[$((conf_idx-1))]}"
-                    if oc whoami >/dev/null 2>&1; then
+                    if oc whoami --request-timeout=2s >/dev/null 2>&1; then
                         echo "Successfully switched KUBECONFIG to: $(basename "$KUBECONFIG")"
                         break
                     else
-                        echo "Warning: Switched to $(basename "$KUBECONFIG"), but the token seems expired or invalid."
+                        echo "Warning: Switched to $(basename "$KUBECONFIG"), but the token seems expired or cluster is unreachable."
                         break
                     fi
                 elif [ -n "$conf_idx" ]; then
@@ -106,8 +106,8 @@ cluster_management_menu() {
 }
 
 show_menu() {
-    local current_server=$(oc whoami --show-server 2>/dev/null)
-    local current_user=$(oc whoami 2>/dev/null)
+    local current_server=$(oc whoami --show-server --request-timeout=2s 2>/dev/null)
+    local current_user=$(oc whoami --request-timeout=2s 2>/dev/null)
     local status_text="NOT CONNECTED"
     
     if [ -n "$current_server" ] && [ -n "$current_user" ]; then
@@ -386,22 +386,38 @@ deploy_showroom() {
         rm -rf /tmp/showroom-deployer
     fi
 
-    if [ ! -f "$SHOWROOM_VALUES" ]; then
-        return
-    fi
-
     local console_url=$(oc whoami --show-console)
     local ui_config_file="../uiConfig"
 
     for user in "${USER_ARRAY[@]}"; do
+        
+cat <<EOF > "/tmp/userdata-${user}.yaml"
+user: ${user}
+links: "true"
+openshift_cluster_console_url: "${console_url}"
+EOF
+
         if [ -f "$ui_config_file" ]; then
             sed "s|{{CONSOLE_URL}}|${console_url}|g" "$ui_config_file" > "/tmp/ui-${user}.yaml"
-            helm upgrade --install "showroom-${user}" "$SHOWROOM_CHART_DIR" -f "$SHOWROOM_VALUES" --namespace "${user}-application" --set "guid=${user}" --set-file "content.uiConfig=/tmp/ui-${user}.yaml"
+            
+            helm upgrade --install "showroom-${user}" "$SHOWROOM_CHART_DIR" -f "$SHOWROOM_VALUES" \
+                --namespace "${user}-application" \
+                --set "guid=${user}" \
+                --set "user=${user}" \
+                --set-file "content.uiConfig=/tmp/ui-${user}.yaml" \
+                --set-file "content.user_data=/tmp/userdata-${user}.yaml"
+                
+            rm -f "/tmp/ui-${user}.yaml"
         else
-            helm upgrade --install "showroom-${user}" "$SHOWROOM_CHART_DIR" -f "$SHOWROOM_VALUES" --namespace "${user}-application" --set "guid=${user}"
+            helm upgrade --install "showroom-${user}" "$SHOWROOM_CHART_DIR" -f "$SHOWROOM_VALUES" \
+                --namespace "${user}-application" \
+                --set "guid=${user}" \
+                --set "user=${user}" \
+                --set-file "content.user_data=/tmp/userdata-${user}.yaml"
         fi
 
-        rm -f "/tmp/ui-${user}.yaml"
+        rm -f "/tmp/userdata-${user}.yaml"
+        
         inject_oauth_proxy "$user"
         oc adm policy add-role-to-user edit $user -n "${user}-application" >/dev/null 2>&1
     done
@@ -421,7 +437,7 @@ uninstall_showroom() {
     done
 }
 
-if ! oc whoami >/dev/null 2>&1; then
+if ! oc whoami --request-timeout=2s >/dev/null 2>&1; then
     echo "Welcome! No active cluster connection detected. Let's set one up."
     cluster_management_menu
 fi

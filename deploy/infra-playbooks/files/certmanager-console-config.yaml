@@ -17,6 +17,6 @@ spec:
   componentRoutes:
     - name: oauth-openshift
       namespace: openshift-authentication
-      hostname: oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+      hostname: oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
       servingCertKeyPairSecret:
         name: oauth-tls-secret  

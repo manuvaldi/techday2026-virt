@@ -10,9 +10,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+  commonName: console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
-  - console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+  - console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -24,9 +24,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+  commonName: oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
-  - oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+  - oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 
 ## Recreate secrets in accordance namespace
 ---
@@ -40,9 +40,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+  commonName: console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
-  - console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+  - console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 
 ---
 apiVersion: cert-manager.io/v1
@@ -55,7 +55,7 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+  commonName: oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
-  - oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+  - oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 

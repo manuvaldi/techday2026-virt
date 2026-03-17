@@ -287,6 +287,38 @@ generate_and_apply_passwords() {
     fi
 }
 
+force_identity_creation() {
+    echo "Waiting for OAuth server to reload new credentials (this can take 1-2 minutes)..."
+    
+    oc rollout status deployment/oauth-openshift -n openshift-authentication --timeout=180s >/dev/null 2>&1
+    
+    echo "Forcing identity creation via oc login..."
+    
+    local admin_kubeconfig=${KUBECONFIG:-~/.kube/config}
+    local cluster_server=$(oc whoami --show-server)
+    
+    export KUBECONFIG="/tmp/dummy_login.kubeconfig"
+
+    while IFS="|" read -r user_part pass_part; do
+        local user=$(echo "$user_part" | awk -F': ' '{print $2}' | tr -d ' ')
+        local password=$(echo "$pass_part" | awk -F': ' '{print $2}' | tr -d ' ')
+        
+        if [ -n "$user" ] && [ -n "$password" ]; then
+            oc login -u "$user" -p "$password" --server="$cluster_server" --insecure-skip-tls-verify=true >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                echo " - Identity created for $user"
+            else
+                echo " - Failed to create identity for $user (Login failed)"
+            fi
+        fi
+    done < lab_credentials.txt
+
+    export KUBECONFIG="$admin_kubeconfig"
+    rm -f "/tmp/dummy_login.kubeconfig"
+    
+    echo "Identities populated successfully."
+}
+
 deploy_default() {
     ensure_connected || return
     read_release_name
@@ -294,6 +326,7 @@ deploy_default() {
     ask_extra_policies
     generate_and_apply_passwords
     helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" $EXTRA_FLAGS
+    force_identity_creation
 }
 
 deploy_custom() {
@@ -303,6 +336,7 @@ deploy_custom() {
     ask_extra_policies
     generate_and_apply_passwords
     helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" $EXTRA_FLAGS
+    force_identity_creation
 }
 
 deploy_no_vms_default() {
@@ -312,6 +346,7 @@ deploy_no_vms_default() {
     ask_extra_policies
     generate_and_apply_passwords
     helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set vms.enabled=false $EXTRA_FLAGS
+    force_identity_creation
 }
 
 deploy_no_vms_custom() {
@@ -321,6 +356,7 @@ deploy_no_vms_custom() {
     ask_extra_policies
     generate_and_apply_passwords
     helm upgrade --install "$RELEASE_NAME" "$CHART_DIR" --set "rbac.users={$CURRENT_USERS}" --set vms.enabled=false $EXTRA_FLAGS
+    force_identity_creation
 }
 
 uninstall_release() {

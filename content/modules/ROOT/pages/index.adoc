@@ -1,26 +1,38 @@
-= Red Hat Tech Day 2026
+= Red Hat Tech Day 2026 - OpenShift Virtualization: Zero-Downtime Hybrid Migration and Multi-Tier Apps
+
 :navtitle: Red Hat Tech Day 2026
 
-Welcome to the afternoon Virtualization Workshop. As organizations look to modernize their infrastructure, managing virtual machines alongside containers has become a critical requirement. This hands-on session is designed to help you explore and understand modern virtualization strategies using Red Hat technologies.
+Welcome to the Techday 2026 Hands-on Lab. In this session, you will learn how to seamlessly bring traditional virtual machine workloads into a cloud-native environment using OpenShift Virtualization. 
 
-== Workshop Objectives
+We will focus on practical, day-two operations: executing zero-downtime live migrations, managing complex multi-tier applications, and bridging the gap between legacy infrastructure and modern container platforms, all from a single unified control plane.
 
-In this guided session, you will get hands-on experience with Red Hat OpenShift Virtualization. By the end of the workshop, you will know how to:
+== Lab Environment & Credentials
 
-* *Deploy and Manage VMs:* Create, configure, and scale virtual machines natively within a Kubernetes-based platform.
-* *Unify your Infrastructure:* Manage both traditional virtual machines and modern containerized applications from a single console.
-* *Execute Migration Strategies:* Use built-in tools to migrate traditional virtualization workloads into OpenShift.
+Before we dive into the migration process, please ensure you can access your assigned OpenShift cluster. You will use these credentials for both the Web Console and the command-line interface (CLI).
 
-== Prerequisites
+[IMPORTANT]
+.Your Cluster Access Details
+====
+* *Web Console URL:* `{openshift_cluster_console_url}`
+* *Username:* `{user}`
+====
 
-To participate in the hands-on labs, please ensure you have the following:
+== Getting Started: Environment Setup
 
-* A personal or corporate laptop with Wi-Fi connectivity.
-* A modern web browser (Chrome, Firefox, Edge) to access the cloud-based lab environments. 
-* _No local software installation is required._
+To begin, you need to prepare your local terminal. We have provided a repository containing all the necessary YAML manifests, scripts, and configuration files you will need throughout this lab.
 
-== Attendance Confirmation
+Open your terminal and run the following commands to clone the lab repository and prepare your workspace:
 
-If you are reviewing this material and haven't officially registered for the session yet, please ensure your attendance is confirmed through the official portal:
+[source,bash]
+----
+# 1. Clone the official lab repository
+git clone https://github.com/manuvaldi/techday2026-virt.git
 
-link:https://reg.experiences.redhat.com/flow/redhat/3380450/fieldeventsregapproveform/page/landingregistrationpage[Confirm your registration here, window="_blank"]
+# 2. Navigate into the working directory
+cd techday2026-virt/manifests
+
+# 3. Verify the repository contents
+ls -la
+----
+
+Once your repository is cloned and you have successfully logged into the OpenShift Web Console, you are ready to proceed to the next section.

@@ -1,0 +1,208 @@
+= Virtual Machine Management
+
+== Exploring the OpenShift Virtualization Interface
+
+This initial section of the lab is designed to get you comfortable with the fundamentals of deploying and administrating virtual machines using OpenShift Virtualization. 
+
+We will start by navigating the new Virtualization perspective introduced in OpenShift. You will discover how the updated tree view significantly simplifies the way you visualize and organize your virtual assets. After familiarizing yourself with the UI enhancements, you will follow the web console's guided workflow to seamlessly spin up a virtual machine from a ready-to-use template. 
+
+Finally, we will transition into typical Day 2 administrator tasks, including tweaking VM configurations, managing power states, and triggering a live migration.
+
+.*Learning Objectives*
+* Provision a new virtual machine using a predefined template.
+* Inspect and adjust virtual machine compute resources.
+* Control and monitor VM power states directly from the web console.
+* Perform a live migration to simulate real-world maintenance operations.
+
+[NOTE]
+.Environment Access Reminder
+====
+Before proceeding, please ensure you are logged into your cluster environment:
+
+* *OpenShift Web Console:* {openshift_cluster_console_url}[here^]
+* *Username:* `{user}`
+====
+
+[[virt_section]]
+== Accessing the Virtualization Interface
+
+. Upon your initial login, ensure you are in the *Administrator* perspective (check the dropdown in the upper-left corner). If a "Quick Tour" or welcome popup appears, click *Skip tour* to dismiss it.
+
+. In the primary navigation menu on the left, locate and click on **Virtualization**. This will expand the section to reveal the *Overview*, *VirtualMachines*, and *Templates* sub-items.
++
+image::vm-mgmt/01.png[link=self, window=blank, width=100%]
+
+
+
+[[explore_virt]]
+== Exploring the Virtualization Dashboard
+
+After expanding the **Virtualization** section in the side menu, you will land on the **Overview** page. This dashboard provides a high-level summary of the virtualization resources active in your **current cluster**. Let's break down the layout to understand how OpenShift organizes these assets.
+
+[NOTE]
+====
+While Advanced Cluster Management (ACM) offers a **Fleet Virtualization** perspective for cross-cluster visibility, the section we are exploring now is the **Integrated Virtualization** view. This view provides the full set of administrative tools (Storage, Networking, Templates) needed for deep management of VMs within this specific clúster.
+====
+
+. Click on **VirtualMachines** in the left-hand navigation sub-menu. This opens the **Virtualization Tree View**, which is the most efficient way to manage VM assets at scale.
+
+. Notice that this interface is organized into three functional columns:
+* **Left Management Menu:** Provides access to specialized virtualization functions like the *Catalog*, *Templates*, and *InstanceTypes*, as well as *Storage* and *Networking* configurations.
+* **Central Project Column:** Displays your OpenShift **Projects** (namespaces). This is where Role-Based Access Control (RBAC) lives. You should primarily see the `{user}-application` project here.
+* **Main Inventory Column:** Shows the actual virtual machines. You can sort, filter, and customize these columns to fit your workflow.
+
+. In the **Central Project Column**, click on your assigned project: `{user}-application`. 
++
+image::02.png[link=self, window=blank, width=100%]
+
++
+[IMPORTANT]
+====
+The lab guide uses dynamic variables like `_user_` to match your environment, but the screenshots are static examples. Always perform the tasks within your own assigned project space.
+====
+
+. The main inventory will update to show only the VMs in your project. You should see an empy VMs list. We will create them on later in the lab.
+
+
+[[project_workspace]]
+== Identifying Your Project Workspace
+
+In OpenShift, **Projects** (Kubernetes namespaces) serve as secure boundaries for your resources. To streamline this lab, a dedicated workspace has been pre-provisioned for you. This ensures you have the necessary permissions to manage virtual machines without additional setup.
+
+. Look at the **central column** of the Virtualization tree view. You will see a list of projects available to your user.
+
+. Locate the project named `{user}-applications`. This is your primary environment for the upcoming exercises.
+
+. Click on `{user}-applications` to ensure it is selected. The main inventory column on the right will update to show that there are currently no virtual machines in this specific workspace.
++
+[NOTE]
+====
+Working within your assigned `{user}-applications` project is critical. It ensures that the resources you create remain isolated from other participants and that the automated lab scripts can interact with your VMs correctly.
+====
+
+[[create_vm]]
+== Deploying a Linux Virtual Machine
+
+. Navigate to the main virtual machine overview column, click the *Create VirtualMachine* button, and choose *From template* from the dropdown menu.
++
+[NOTE]
+====
+While OpenShift Virtualization supports creating VMs via an InstanceType wizard or by applying custom YAML manifests, this lab focuses on streamlining the process using pre-configured templates.
+====
++
+image::05.png[link=self, window=blank, width=100%]
+
+. This action redirects you to the *Catalog* view, displaying a grid of tiles representing available VM templates. 
++
+Notice that several templates feature a blue *Source available* badge. This indicates that the underlying boot disk image has been automatically downloaded and cached within the cluster. In a real-world production environment, cluster administrators can customize these boot sources, curating standard golden images tailored to organizational requirements.
++
+image::06.png[link=self, window=blank, width=100%]
+
+. Click the *Red Hat Enterprise Linux 9 VM* tile to open the quick creation dialog.
++
+image::07.png[link=self, window=blank, width=100%]
+
+. In the dialog box, rename the virtual machine to `rhel9` and click *Quick create VirtualMachine*.
++
+image::08.png[link=self, window=blank, width=100%]
+
+. You will be redirected back to the virtualization tree view. Notice that your `{user}-application` project is now visible and highlighted in the central column, as it now contains an active asset. 
++
+In the main overview column, monitor the status of `rhel9`. You will see it transition from *Provisioning* to *Starting*, and finally to *Running*. Behind the scenes, the storage provider is efficiently cloning the template's boot disk for your new VM. The duration of this process depends on the underlying storage backend and current cluster load.
+
+. Once the VM reaches the *Running* state, you can explore its dedicated *Overview* dashboard in the right-hand column. This panel aggregates critical information into several distinct tiles:
++
+* *Details*: Displays core VM attributes (name, status, uptime, OS, compute resources, and the source template). It also features a miniature VNC terminal with an option to launch a full-screen web console.
+* *General*: Highlights OpenShift-specific metadata, including the namespace (Project) and the underlying Kubernetes pod hosting the VM.
+* *Snapshots*: Lists existing snapshots and provides a shortcut to instantly capture the VM's current state.
+* *Network*: Shows the internal hostname and IP address assigned by the Software-Defined Network (SDN). By default, VMs attach to the standard pod network, but we will explore advanced networking configurations later in this lab.
+* *Utilization*: Provides real-time telemetry on resource consumption, including CPU, Memory, Storage I/O, and Network throughput.
++
+image::09.png[link=self, window=blank, width=100%]
+
+. Finally, switch to the *Events* tab to review the audit trail of the provisioning process. This tab is invaluable for troubleshooting any creation failures. For a successful deployment, you should observe key lifecycle events, such as:
++
+image::10.png[link=self, window=blank, width=100%]
++
+* A _DataVolume_ being created. DataVolumes orchestrate the disk cloning or importing process onto OpenShift-native storage during VM provisioning.
+* The new _VirtualMachineInstance_ (VMI) successfully entering the started state.
+
+[[admin_vms]]
+== Day 2 Operations: Administering Virtual Machines
+
+Effective virtual machine management extends far beyond initial provisioning. As a platform administrator, you must master Day 2 operations: controlling VM power states, modifying resource allocations, and executing live migrations to ensure workload balancing and zero-downtime node maintenance.
+
+. Navigate to the *Configuration* tab. This is your primary interface for inspecting and modifying the virtual machine's underlying resources.
++
+image::11.png[link=self, window=blank, width=100%]
++
+The configuration panel is divided into seven intuitive subtabs:
+
+* *Details*: Consolidates the physical characteristics of the VM. From here, you can scale CPU or memory, change the hostname, manage boot order, and attach passthrough hardware devices.
+* *Storage*: Manages attached disks and volumes. If the guest agent is running, it also reports internal filesystem utilization. Additionally, you can mount Kubernetes _ConfigMaps_, _Secrets_, and _Service Accounts_ as secondary disks to inject configuration data directly into the guest.
+* *Network*: Displays configured network interfaces and allows you to attach the VM to new networks.
+* *Scheduling*: Controls workload placement and eviction strategies. Use this tab to configure node selectors, tolerations, and (anti)affinity rules that dictate which physical cluster nodes the VM is allowed to run on.
+* *SSH*: Configures secure remote access by exposing an SSH service via a load balancer, or by dynamically injecting public SSH keys (if the feature is enabled).
+* *Initial run*: Manages guest operating system bootstrapping via _cloud-init_ (Linux) or _Sysprep_ (Windows). This handles first-boot execution commands, SSH key injection, user creation, and network configuration.
+* *Metadata*: Displays Kubernetes Labels and Annotations. These key-value pairs are crucial for identifying machines, organizing billing, and triggering automated GitOps workflows.
+
+. Feel free to explore these subtabs. For this introductory module, let's focus specifically on the storage and networking configurations.
+
+. Click the *Storage* subtab to list the disks associated with the VM:
++
+image::12.png[link=self, window=blank, width=100%]
++
+In this environment, the default StorageClass backing the VM disks is `ocs-external-storagecluster-ceph-rbd`. This is provided by OpenShift Data Foundation (ODF). Depending on your infrastructure, different storage providers will offer various StorageClasses tailored for different performance tiers (e.g., NVMe vs. HDD).
+
+. Click the *Network* subtab to examine the attached network interfaces:
++
+image::13.png[link=self, window=blank, width=100%]
++
+When using the "Quick create" method, the VM is automatically attached to the *Pod Networking* backend using a `masquerade` binding. This connects the VM to the OpenShift Software-Defined Network (SDN), granting it outbound egress access. Other cluster entities (VMs and Pods) can reach this VM internally.
++
+To expose the VM externally, you can use Kubernetes Routes, LoadBalancer Services, or directly attach the VM to external VLANs via a Network Attachment Definition (NAD). We will explore advanced networking later in the lab.
+
+[[vm_state]]
+== Managing Virtual Machine Power States
+
+With the appropriate Role-Based Access Control (RBAC) permissions, you can seamlessly manage the lifecycle of your virtual machines directly from the web console.
+
+. Click the *Overview* tab to return to the VM summary dashboard.
+
+. In the top-right corner, you will find quick-access shortcut buttons for power state management, alongside an *Actions* dropdown menu.
++
+image::14.png[link=self, window=blank, width=100%]
++
+* *Stop*: Initiates a graceful ACPI shutdown of the guest operating system.
+* *Restart*: Triggers a guest OS reboot. (Note: The QEMU guest agent should be running for optimal handling).
+* *Pause*: Suspends VM execution. CPU and I/O are frozen, but the RAM allocated at the hypervisor level remains locked and intact.
+* *Start*: Powers on a stopped VM (this button is greyed out if the VM is already running).
+
+. While the shortcut buttons are convenient, the full suite of management options is available inside the *Actions* dropdown menu.
++
+image::15.png[link=self, window=blank, width=100%]
+
+. Let's test this functionality. Click the *Stop* button and wait a few moments until the VM status changes to *Stopped*.
+
+. Open the *Actions* menu again. Notice that *Start* is now available, while *Restart* and *Pause* are logically disabled (greyed out).
+
+. Click *Start* and wait for the VM to return to a *Running* status.
+
+. Next, click the *Pause* shortcut button (or select it from the Actions menu). The VM state will immediately shift to *Paused*.
+
+. Finally, bring the system back online by clicking the *Unpause* shortcut button (or selecting *Unpause* from the Actions menu).
+
+[[cleanup]]
+== Cleaning Up Your Resources
+
+To keep our shared environment efficient and organized, we will now remove the virtual machine created in this module. We will keep the `{user}-applications` project intact so it can be reused in the upcoming lab exercises.
+
+. Navigate to the **Virtualization** section in the left-hand menu and select the **VirtualMachines** view.
+
+. In the central column, ensure that your project `{user}-applications` is selected so you only see your own assets.
+
+. In the main inventory list, locate your virtual machine (e.g., `rhel9`). Click the **Actions** menu at the far right and select **Stop** and then **Delete**.
+
+. A confirmation dialog will appear. Make sure the option to delete the associated storage/disks is selected, then click **Delete** to confirm.
+
+. Monitor the inventory for a few moments until the VM disappears from the list. Your project workspace is now clean and ready for the next module.

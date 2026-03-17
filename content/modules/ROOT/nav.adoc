@@ -1,25 +1,11 @@
-* xref:index.adoc[Techday 2026]
+* xref:index.adoc[Introduction]
 
-.Introduction
-* xref:introduction.adoc[Introduction]
+* xref:vm-mgmt.adoc[Virtual Machine Management ]
+** xref:vm-mgmt.adoc#virt_section[Accessing the Virtualization Interface]
+** xref:vm-mgmt.adoc#explore_virt[Exploring the Virtualization Dashboard]
+** xref:vm-mgmt.adoc#project_workspace[Identifying Your Project Workspace]
+** xref:vm-mgmt.adoc#create_vm[Deploying a Linux Virtual Machine]
+** xref:vm-mgmt.adoc#admin_vms[Day 2 Operations: Administering Virtual Machines]
+** xref:vm-mgmt.adoc#vm_state[Managing Virtual Machine Power States]
+** xref:vm-mgmt.adoc#cleanup[Cleaning Up Your Resources]
 
-////
-* xref:index.adoc[What is Showroom?]
-
-.Content Developer Guide
-* xref:quick-start.adoc[Quick Start]
-* xref:content-repo.adoc[Creating a Content Repository]
-* xref:agnosticv-config.adoc[AgnosticV Configuration]
-* xref:ui-config.adoc[UI Configuration]
-* xref:user-data.adoc[User Data and Variables]
-* xref:ocp4-role-reference.adoc[OCP4 Role Reference]
-* xref:vm-role-reference.adoc[VM Role Reference]
-
-.Showroom Developer Guide
-* xref:architecture.adoc[Architecture]
-* xref:deployer.adoc[Showroom Deployer]
-* xref:images.adoc[Showroom Images]
-* xref:nookbag.adoc[Nookbag UI]
-* xref:ocp-integration.adoc[OCP Integration]
-* xref:contributing.adoc[Contributing]
-////

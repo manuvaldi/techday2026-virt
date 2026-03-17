@@ -12,4 +12,4 @@ odf: false
 crosscluster: false
 deploy_demo: false 
 odf_sc: thin-csi
-osd_size: 300Gi
+osd_size: 512Gi

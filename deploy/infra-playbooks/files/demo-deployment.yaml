@@ -7,61 +7,7 @@ metadata:
     name: cross-cluster-demo
   name: cross-cluster-demo
 ---
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: RoleBinding
-# metadata:
-#   name: admin-default-sa
-#   namespace: cross-cluster-demo
-# roleRef:
-#   apiGroup: rbac.authorization.k8s.io
-#   kind: ClusterRole
-#   name: admin
-# subjects:
-# - kind: ServiceAccount
-#   name: default
-#   namespace: cross-cluster-demo
-# ---
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: ClusterRoleBinding
-# metadata:
-#   name: cluster-admin-default-sa
-# roleRef:
-#   apiGroup: rbac.authorization.k8s.io
-#   kind: ClusterRole
-#   name: cluster-admin
-# subjects:
-# - kind: ServiceAccount
-#   name: default
-#   namespace: cross-cluster-demo
-# ---
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: my-config
-#   namespace: cross-cluster-demo
-# data:
-#   MIVAR: "Hola desde el ConfigMap 🚀 en {{clustername}}"
-# ---
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: apache-message
-#   namespace: cross-cluster-demo
-# data:
-#   script.sh: |
-#     #!/bin/bash
-#
-#     set -e
-#
-#     MIVAR_VALOR=$(curl -k https://kubernetes.default.svc.cluster.local:443/console | sed -n 's/.*apps\.\([^.]*\)\..*/\1/p')
-#     echo "MIVAR obtenido desde Kubernetes: $MIVAR_VALOR"
-#     echo "$MIVAR_VALOR" > /var/run/watched.txt
-#     # if [ "$MIVAR_VALOR" == "" ]; then
-#     #   echo "Reiniciando NM"
-#     #   systemctl reset-failed NetworkManager
-#     #   systemctl restart NetworkManager
-#     # fi
-# ---
+
 {% if clustername == "local-cluster" %}
 kind: Secret
 apiVersion: v1

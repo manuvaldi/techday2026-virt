@@ -32,4 +32,3 @@ spec:
   nodeTopologies:
     arbiterLocation: ''
   resourceProfile: lean
-  flexibleScaling: false

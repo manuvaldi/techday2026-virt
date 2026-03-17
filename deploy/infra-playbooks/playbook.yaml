@@ -71,6 +71,11 @@
         file: tasks/ocp-acm-allclusters.yaml
       when: acm|bool == true
 
+    - name: Fixes and adjusting
+      include_tasks:
+        file: tasks/fixes.yaml
+      when: acm|bool == true 
+
 ## Relabel local cluster from vmware to "baremetal"
     - name: Relabel local-cluster to Baremetal
       k8s:

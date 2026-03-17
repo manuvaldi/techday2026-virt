@@ -4,11 +4,13 @@
     kind: Node
   register: k8s_nodes_info
 
-- set_fact:
+- name: ODF - Filtrando lista de workers
+  set_fact:
     k8s_workers: >-
       {{
         k8s_nodes_info.resources
         | rejectattr('metadata.labels', 'contains', 'node-role.kubernetes.io/control-plane')
+        | rejectattr('metadata.labels', 'contains', 'node-role.kubernetes.io/infra')
         | map(attribute='metadata.name')
         | list
       }}

@@ -1,0 +1,61 @@
+## Precreate certificates
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: custom-console-cert
+  namespace: openshift-console
+spec:
+  secretName: custom-console-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+  dnsNames:
+  - console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: oauth-cert
+  namespace: openshift-authentication
+spec:
+  secretName: oauth-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+  dnsNames:
+  - oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+
+## Recreate secrets in accordance namespace
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: custom-console-cert
+  namespace: openshift-ingress
+spec:
+  secretName: custom-console-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+  dnsNames:
+  - console-openshift-console.apps.r5c7w.dynamic.redhatworkshops.io
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: oauth-cert
+  namespace: openshift-config
+spec:
+  secretName: oauth-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+  dnsNames:
+  - oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+

@@ -11,5 +11,8 @@ acm: false
 odf: false
 crosscluster: false
 deploy_demo: false 
+submariner: false
+letsencrypt: false
+
 odf_sc: thin-csi
 osd_size: 512Gi

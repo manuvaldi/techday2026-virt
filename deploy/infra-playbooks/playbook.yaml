@@ -97,3 +97,8 @@
       when: deploy_demo|bool == true
 
 
+## Let's encrypt integration 
+    - name: 
+      include_tasks:
+        file: tasks/letsencrypt.yaml
+      when: letsencrypt|bool == true    

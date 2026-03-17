@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager-operator
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: cert-manager-operator-operator-group
+  namespace: cert-manager-operator
+spec:
+  targetNamespaces:
+    - cert-manager-operator
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-cert-manager-operator-subscription
+  namespace: cert-manager-operator
+spec:
+  channel: stable-v1
+  installPlanApproval: Automatic
+  name: openshift-cert-manager-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+
+# ---
+# apiVersion: cert-manager.io/v1
+# kind: Certificate
+# metadata:
+#   name: web-app-tls
+#   namespace: user1-application
+# spec:
+#   secretName: web-app-tls-secret
+#   issuerRef:
+#     name: letsencrypt-prod
+#     kind: ClusterIssuer
+#   commonName: app-user1-application.apps.r5c7w.dynamic.redhatworkshops.io
+#   dnsNames:
+#   - app-user1-application.apps.r5c7w.dynamic.redhatworkshops.io  
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   name: router-secrets-reader
+#   namespace: user1-application
+# rules:
+# - apiGroups: [""]
+#   resources: ["secrets"]
+#   resourceNames: ["web-app-tls-secret"] # The name of your cert-manager secret
+#   verbs: ["get", "list", "watch"]
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: router-secrets-reader-binding
+#   namespace: user1-application
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: Role
+#   name: router-secrets-reader
+# subjects:
+# - kind: ServiceAccount
+#   name: router
+#   namespace: openshift-ingress    

@@ -1,0 +1,22 @@
+## Patch objects to user certificates 
+---
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: default
+  namespace: openshift-ingress-operator
+spec:
+  defaultCertificate:
+    name: custom-console-tls-secret
+---
+apiVersion: config.openshift.io/v1
+kind: Ingress
+metadata:
+  name: cluster
+spec:
+  componentRoutes:
+    - name: oauth-openshift
+      namespace: openshift-authentication
+      hostname: oauth-openshift.apps.r5c7w.dynamic.redhatworkshops.io
+      servingCertKeyPairSecret:
+        name: oauth-tls-secret  

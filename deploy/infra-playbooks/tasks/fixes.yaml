@@ -14,6 +14,17 @@
     - "/tmp/{{ azure_cluster_name }}-kubeconfig"
     - "{{ocp_installation_path}}/auth/kubeconfig"
 
+- name: Update KubeVirt UI ConfigMap feature gate
+  kubernetes.core.k8s:
+    kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
+    state: patched
+    kind: ConfigMap
+    name: kubevirt-ui-features
+    namespace: openshift-cnv
+    definition:
+      data:
+        kubevirtCrossClusterMigration: "true"
+     
 
 - name: Check Sources Imports 
   ansible.builtin.shell: |

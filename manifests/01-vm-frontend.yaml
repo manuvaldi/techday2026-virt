@@ -1,12 +1,12 @@
----
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: stock-parameters
-data:
-  podman.env: |
-    BACKEND_URL=http://backend:5000/data
-    REDIS_HOST=database.<user-namespace>
+# ---
+# kind: ConfigMap
+# apiVersion: v1
+# metadata:
+#   name: stock-parameters
+# data:
+#   podman.env: |
+#     BACKEND_URL=http://backend:5000/data
+#     REDIS_HOST=database.<user-namespace>
 
 ---
 kind: Secret
@@ -158,7 +158,7 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: devuser2-application
+  name: stock
 spec:
   to:
     name: frontend

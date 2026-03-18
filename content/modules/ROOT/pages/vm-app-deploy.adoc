@@ -14,12 +14,31 @@ The architecture consists of:
 
 Open your terminal and ensure you are working in your assigned project.
 
+. **Select your project namespace:**
++
 [.lines_space]
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
 oc project {user}-application
 ----
+
+. **Navigate to the lab repository:**
+Make sure you are in the folder where the YAML files are located.
++
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
+----
+cd ~/techday2026-virt/manifests
+ls -la
+----
++
+[NOTE]
+====
+If you don't see the files or get a "No such file or directory" error, it means you need to clone the repository first. You can do so by running: 
+`git clone https://github.com/manuvaldi/techday2026-virt.git ~/techday2026-virt`
+====
 
 === Configure Application Parameters (ConfigMap)
 

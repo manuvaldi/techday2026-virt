@@ -23,16 +23,15 @@ To begin, you need to prepare your local terminal. We have provided a repository
 
 Open your terminal and run the following commands to clone the lab repository and prepare your workspace:
 
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
-# 1. Clone the official lab repository
-git clone https://github.com/manuvaldi/techday2026-virt.git
+# Clone the official lab repository
+git clone https://github.com/manuvaldi/techday2026-virt.git ~/techday2026-virt
 
-# 2. Navigate into the working directory
-cd techday2026-virt/manifests
-
-# 3. Verify the repository contents
-ls -la
+# Navigate into the working directory
+cd ~/techday2026-virt/manifests
 ----
 
 Once your repository is cloned and you have successfully logged into the OpenShift Web Console, you are ready to proceed to the next section.

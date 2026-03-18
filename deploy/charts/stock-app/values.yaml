@@ -33,4 +33,4 @@ vms:
 
 enableUDN: false #cluster1
 enableACM: false #cluster1
-enableExport: false #
+enableExport: false #cluster2

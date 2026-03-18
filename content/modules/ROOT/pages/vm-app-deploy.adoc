@@ -4,15 +4,19 @@
 Now that you are familiar with basic VM operations, it's time to build something real. For the **Red Hat Tech Day 2026**, we will deploy a complete 3-tier application architecture. This setup simulates a production environment where different components must communicate securely and reliably.
 
 The architecture consists of:
+
 1. **Database Tier (redis):** Provides high-performance in-memory data storage.
 2. **Backend Tier (Python API):** Processing business logic and connecting to the DB.
 3. **Frontend Tier (Nginx/html):** Serves the static content and UI.
+
 
 === Prepare Your Workspace
 
 Open your terminal and ensure you are working in your assigned project.
 
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
 # Switch to your project context
 oc project {user}-applications
@@ -24,7 +28,9 @@ Before launching the VMs, we need to provide them with the necessary configurati
 
 Copy and paste the following block into your terminal. Note that we are pointing the `REDIS_HOST` to the internal DNS name of our database service.
 
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
 cat <<EOF | oc apply -f -
 kind: ConfigMap
@@ -45,21 +51,27 @@ Now, let's deploy the three tiers in order. We'll start with the database so it'
 
 . **Deploy the Database (Redis):**
 +
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
 oc apply -f 03-vm-database.yaml -n {user}-applications
 ----
 
 . **Deploy the Backend (Python API):**
 +
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
 oc apply -f 02-vm-backend.yaml -n {user}-applications
 ----
 
 . **Deploy the Frontend (Nginx/HTML):**
 +
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
 oc apply -f 01-vm-frontend.yaml -n {user}-applications
 ----
@@ -70,7 +82,9 @@ Once the VMs are in the **Running** state, OpenShift automatically manages their
 
 . **Check the Services:**
 +
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
 oc get svc -n {user}-applications
 ----
@@ -80,7 +94,9 @@ Notice that each VM has a corresponding Service. This allows the Frontend VM to 
 . **Find your Route:**
 The Frontend is exposed to the outside world through an OpenShift Route.
 +
-[source,bash]
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
 ----
 oc get route -n {user}-applications
 ----

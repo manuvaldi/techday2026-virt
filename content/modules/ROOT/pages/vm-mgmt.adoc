@@ -53,7 +53,7 @@ While Advanced Cluster Management (ACM) offers a **Fleet Virtualization** perspe
 
 . In the **Central Project Column**, click on your assigned project: `{user}-application`. 
 +
-image::02.png[link=self, window=blank, width=100%]
+image::vm-mgmt/02.png[link=self, window=blank, width=100%]
 
 +
 [IMPORTANT]
@@ -90,21 +90,21 @@ Working within your assigned `{user}-applications` project is critical. It ensur
 While OpenShift Virtualization supports creating VMs via an InstanceType wizard or by applying custom YAML manifests, this lab focuses on streamlining the process using pre-configured templates.
 ====
 +
-image::05.png[link=self, window=blank, width=100%]
+image::vm-mgmt/05.png[link=self, window=blank, width=100%]
 
 . This action redirects you to the *Catalog* view, displaying a grid of tiles representing available VM templates. 
 +
 Notice that several templates feature a blue *Source available* badge. This indicates that the underlying boot disk image has been automatically downloaded and cached within the cluster. In a real-world production environment, cluster administrators can customize these boot sources, curating standard golden images tailored to organizational requirements.
 +
-image::06.png[link=self, window=blank, width=100%]
+image::vm-mgmt/06.png[link=self, window=blank, width=100%]
 
 . Click the *Red Hat Enterprise Linux 9 VM* tile to open the quick creation dialog.
 +
-image::07.png[link=self, window=blank, width=100%]
+image::vm-mgmt/07.png[link=self, window=blank, width=100%]
 
 . In the dialog box, rename the virtual machine to `rhel9` and click *Quick create VirtualMachine*.
 +
-image::08.png[link=self, window=blank, width=100%]
+image::vm-mgmt/08.png[link=self, window=blank, width=100%]
 
 . You will be redirected back to the virtualization tree view. Notice that your `{user}-application` project is now visible and highlighted in the central column, as it now contains an active asset. 
 +
@@ -118,11 +118,11 @@ In the main overview column, monitor the status of `rhel9`. You will see it tran
 * *Network*: Shows the internal hostname and IP address assigned by the Software-Defined Network (SDN). By default, VMs attach to the standard pod network, but we will explore advanced networking configurations later in this lab.
 * *Utilization*: Provides real-time telemetry on resource consumption, including CPU, Memory, Storage I/O, and Network throughput.
 +
-image::09.png[link=self, window=blank, width=100%]
+image::vm-mgmt/09.png[link=self, window=blank, width=100%]
 
 . Finally, switch to the *Events* tab to review the audit trail of the provisioning process. This tab is invaluable for troubleshooting any creation failures. For a successful deployment, you should observe key lifecycle events, such as:
 +
-image::10.png[link=self, window=blank, width=100%]
+image::vm-mgmt/10.png[link=self, window=blank, width=100%]
 +
 * A _DataVolume_ being created. DataVolumes orchestrate the disk cloning or importing process onto OpenShift-native storage during VM provisioning.
 * The new _VirtualMachineInstance_ (VMI) successfully entering the started state.
@@ -134,7 +134,7 @@ Effective virtual machine management extends far beyond initial provisioning. As
 
 . Navigate to the *Configuration* tab. This is your primary interface for inspecting and modifying the virtual machine's underlying resources.
 +
-image::11.png[link=self, window=blank, width=100%]
+image::vm-mgmt/11.png[link=self, window=blank, width=100%]
 +
 The configuration panel is divided into seven intuitive subtabs:
 
@@ -150,13 +150,13 @@ The configuration panel is divided into seven intuitive subtabs:
 
 . Click the *Storage* subtab to list the disks associated with the VM:
 +
-image::12.png[link=self, window=blank, width=100%]
+image::vm-mgmt/12.png[link=self, window=blank, width=100%]
 +
 In this environment, the default StorageClass backing the VM disks is `ocs-external-storagecluster-ceph-rbd`. This is provided by OpenShift Data Foundation (ODF). Depending on your infrastructure, different storage providers will offer various StorageClasses tailored for different performance tiers (e.g., NVMe vs. HDD).
 
 . Click the *Network* subtab to examine the attached network interfaces:
 +
-image::13.png[link=self, window=blank, width=100%]
+image::vm-mgmt/13.png[link=self, window=blank, width=100%]
 +
 When using the "Quick create" method, the VM is automatically attached to the *Pod Networking* backend using a `masquerade` binding. This connects the VM to the OpenShift Software-Defined Network (SDN), granting it outbound egress access. Other cluster entities (VMs and Pods) can reach this VM internally.
 +
@@ -171,7 +171,7 @@ With the appropriate Role-Based Access Control (RBAC) permissions, you can seaml
 
 . In the top-right corner, you will find quick-access shortcut buttons for power state management, alongside an *Actions* dropdown menu.
 +
-image::14.png[link=self, window=blank, width=100%]
+image::vm-mgmt/14.png[link=self, window=blank, width=100%]
 +
 * *Stop*: Initiates a graceful ACPI shutdown of the guest operating system.
 * *Restart*: Triggers a guest OS reboot. (Note: The QEMU guest agent should be running for optimal handling).
@@ -180,7 +180,7 @@ image::14.png[link=self, window=blank, width=100%]
 
 . While the shortcut buttons are convenient, the full suite of management options is available inside the *Actions* dropdown menu.
 +
-image::15.png[link=self, window=blank, width=100%]
+image::vm-mgmt/15.png[link=self, window=blank, width=100%]
 
 . Let's test this functionality. Click the *Stop* button and wait a few moments until the VM status changes to *Stopped*.
 

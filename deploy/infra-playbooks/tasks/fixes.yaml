@@ -1,5 +1,5 @@
 
-- name: Patch hyperconverge with cpu
+- name: Kubevirt - Patch hyperconverge with cpu
   kubernetes.core.k8s:
     kubeconfig: "{{item}}"
     state: patched
@@ -14,7 +14,7 @@
     - "/tmp/{{ azure_cluster_name }}-kubeconfig"
     - "{{ocp_installation_path}}/auth/kubeconfig"
 
-- name: Update KubeVirt UI ConfigMap feature gate
+- name: Kubevirt - Update KubeVirt UI ConfigMap feature gate
   kubernetes.core.k8s:
     kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
     state: patched
@@ -35,3 +35,13 @@
     - "{{ocp_installation_path}}/auth/kubeconfig"    
   register: shell_result
   failed_when: shell_result.rc != 0 and shell_result.rc != 1    
+
+
+- name: Kubevirt - Create custom role with missing permissions
+  kubernetes.core.k8s:
+    kubeconfig: "{{item}}"
+    state: present
+    template: "files/kubevirt-custom-role.yaml"
+  loop: 
+    - "/tmp/{{ azure_cluster_name }}-kubeconfig"
+    - "{{ocp_installation_path}}/auth/kubeconfig"

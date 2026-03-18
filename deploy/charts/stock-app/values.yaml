@@ -31,5 +31,6 @@ components:
 vms:
   enabled: true
 
-enableUDN: false
-enableACM: false
+enableUDN: false #cluster1
+enableACM: false #cluster1
+enableExport: false #

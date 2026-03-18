@@ -18,8 +18,7 @@ Open your terminal and ensure you are working in your assigned project.
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-# Switch to your project context
-oc project {user}-applications
+oc project {user}-application
 ----
 
 === Configure Application Parameters (ConfigMap)
@@ -37,11 +36,11 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: stock-parameters
-  namespace: {user}-applications
+  namespace: {user}-application
 data:
   podman.env: |
     BACKEND_URL=http://backend:5000/data
-    REDIS_HOST=database.{user}-applications
+    REDIS_HOST=database.{user}-application
 EOF
 ----
 
@@ -55,7 +54,7 @@ Now, let's deploy the three tiers in order. We'll start with the database so it'
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-oc apply -f 03-vm-database.yaml -n {user}-applications
+oc apply -f 03-vm-database.yaml -n {user}-application
 ----
 
 . **Deploy the Backend (Python API):**
@@ -64,7 +63,7 @@ oc apply -f 03-vm-database.yaml -n {user}-applications
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-oc apply -f 02-vm-backend.yaml -n {user}-applications
+oc apply -f 02-vm-backend.yaml -n {user}-application
 ----
 
 . **Deploy the Frontend (Nginx/HTML):**
@@ -73,7 +72,7 @@ oc apply -f 02-vm-backend.yaml -n {user}-applications
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-oc apply -f 01-vm-frontend.yaml -n {user}-applications
+oc apply -f 01-vm-frontend.yaml -n {user}-application
 ----
 
 === Explore Services and Routes
@@ -86,7 +85,7 @@ Once the VMs are in the **Running** state, OpenShift automatically manages their
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-oc get svc -n {user}-applications
+oc get svc -n {user}-application
 ----
 +
 Notice that each VM has a corresponding Service. This allows the Frontend VM to talk to the Backend VM using the hostname `backend`, and the Backend to talk to Redis using `database`.
@@ -98,7 +97,7 @@ The Frontend is exposed to the outside world through an OpenShift Route.
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-oc get route -n {user}-applications
+oc get route -n {user}-application
 ----
 
 === Access the App

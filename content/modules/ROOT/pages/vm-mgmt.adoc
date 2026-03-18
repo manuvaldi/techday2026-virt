@@ -71,13 +71,13 @@ In OpenShift, **Projects** (Kubernetes namespaces) serve as secure boundaries fo
 
 . Look at the **central column** of the Virtualization tree view. You will see a list of projects available to your user.
 
-. Locate the project named `{user}-applications`. This is your primary environment for the upcoming exercises.
+. Locate the project named `{user}-application`. This is your primary environment for the upcoming exercises.
 
-. Click on `{user}-applications` to ensure it is selected. The main inventory column on the right will update to show that there are currently no virtual machines in this specific workspace.
+. Click on `{user}-application` to ensure it is selected. The main inventory column on the right will update to show that there are currently no virtual machines in this specific workspace.
 +
 [NOTE]
 ====
-Working within your assigned `{user}-applications` project is critical. It ensures that the resources you create remain isolated from other participants and that the automated lab scripts can interact with your VMs correctly.
+Working within your assigned `{user}-application` project is critical. It ensures that the resources you create remain isolated from other participants and that the automated lab scripts can interact with your VMs correctly.
 ====
 
 [[create_vm]]
@@ -195,11 +195,11 @@ image::vm-mgmt/15.png[link=self, window=blank, width=100%]
 [[cleanup]]
 == Cleaning Up Your Resources
 
-To keep our shared environment efficient and organized, we will now remove the virtual machine created in this module. We will keep the `{user}-applications` project intact so it can be reused in the upcoming lab exercises.
+To keep our shared environment efficient and organized, we will now remove the virtual machine created in this module. We will keep the `{user}-application` project intact so it can be reused in the upcoming lab exercises.
 
 . Navigate to the **Virtualization** section in the left-hand menu and select the **VirtualMachines** view.
 
-. In the central column, ensure that your project `{user}-applications` is selected so you only see your own assets.
+. In the central column, ensure that your project `{user}-application` is selected so you only see your own assets.
 
 . In the main inventory list, locate your virtual machine (e.g., `rhel9`). Click the **Actions** menu at the far right and select **Stop** and then **Delete**.
 

@@ -26,8 +26,9 @@ cluster_management_menu() {
         echo "1. Switch to an existing Kubeconfig"
         echo "2. Add new cluster (Paste full 'oc login' command)"
         echo "3. Add new cluster (Enter URL and Token)"
-        echo "4. Return to Main Menu"
-        read -p "Select an option [1-4]: " cm_choice
+        echo "4. Delete an existing Kubeconfig"
+        echo "5. Return to Main Menu"
+        read -p "Select an option [1-5]: " cm_choice
 
         case $cm_choice in
             1)
@@ -99,7 +100,38 @@ cluster_management_menu() {
                     unset KUBECONFIG
                 fi
                 ;;
-            4) break ;;
+            4)
+                local configs=(./kubeconfigs/*.kubeconfig)
+                if [ ! -e "${configs[0]}" ]; then
+                    echo "Error: No saved kubeconfigs found to delete in ./kubeconfigs/"
+                    continue
+                fi
+                echo -e "\nSelect a configuration to DELETE:"
+                for i in "${!configs[@]}"; do
+                    echo "$((i+1)). $(basename "${configs[$i]}")"
+                done
+                read -p "Select a number to delete (or Enter to cancel): " del_idx
+                if [[ "$del_idx" =~ ^[0-9]+$ ]] && [ "$del_idx" -gt 0 ] && [ "$del_idx" -le "${#configs[@]}" ]; then
+                    local target_file="${configs[$((del_idx-1))]}"
+                    local target_basename=$(basename "$target_file")
+                    
+                    read -p "Are you sure you want to delete '$target_basename'? (y/n): " confirm
+                    if [[ "$confirm" == "y" ]]; then
+                        rm -f "$target_file"
+                        echo "Deleted $target_basename successfully."
+                        
+                        if [ "$KUBECONFIG" == "$(pwd)/${target_file#./}" ] || [ "$KUBECONFIG" == "$target_file" ]; then
+                            echo "Warning: You deleted your active KUBECONFIG. You are now disconnected."
+                            unset KUBECONFIG
+                        fi
+                    else
+                        echo "Deletion cancelled."
+                    fi
+                elif [ -n "$del_idx" ]; then
+                    echo "Invalid selection."
+                fi
+                ;;
+            5) break ;;
             *) echo "Invalid option." ;;
         esac
     done
@@ -125,16 +157,18 @@ show_menu() {
     echo -e "\n--- App Only Infrastructure (NO VMs) ---"
     echo "3. Deploy WITHOUT VMs (Default users)"
     echo "4. Deploy WITHOUT VMs (Custom users)"
+    echo -e "\n--- Day 2 Operations ---"
+    echo "5. Update extra policies (UDN, ACM, ServiceExport) on existing release"
     echo -e "\n--- Teardown ---"
-    echo "5. Uninstall release"
-    echo "6. Uninstall release AND clean namespaces"
+    echo "6. Uninstall release"
+    echo "7. Uninstall release AND clean namespaces"
     echo -e "\n--- Lab Environment ---"
-    echo "7. Deploy Showroom"
-    echo "8. Uninstall Showroom"
+    echo "8. Deploy Showroom"
+    echo "9. Uninstall Showroom"
     echo -e "\n--- Cluster Management ---"
-    echo "9. Switch / Generate Kubeconfig"
+    echo "10. Switch / Generate Kubeconfig"
     echo "=========================================="
-    echo "10. Exit"
+    echo "11. Exit"
     echo "=========================================="
 }
 
@@ -146,21 +180,14 @@ read_release_name() {
 ask_extra_policies() {
     EXTRA_FLAGS=""
     
-    read -p "Enable User Defined Network (UDN) policies for this deployment? (y/n): " udn_choice
-    if [[ "$udn_choice" == "y" ]]; then
-        EXTRA_FLAGS+="--set enableUDN=true "
-        echo "UDN policies enabled."
-    else
-        echo "UDN policies disabled."
-    fi
+    read -p "Enable User Defined Network (UDN) policies? (y/n): " udn_choice
+    if [[ "$udn_choice" == "y" ]]; then EXTRA_FLAGS+="--set enableUDN=true "; else EXTRA_FLAGS+="--set enableUDN=false "; fi
 
-    read -p "Enable Advanced Cluster Management (ACM) global roles for users? (y/n): " acm_choice
-    if [[ "$acm_choice" == "y" ]]; then
-        EXTRA_FLAGS+="--set enableACM=true "
-        echo "ACM global roles enabled."
-    else
-        echo "ACM global roles disabled."
-    fi
+    read -p "Enable Advanced Cluster Management (ACM) global roles? (y/n): " acm_choice
+    if [[ "$acm_choice" == "y" ]]; then EXTRA_FLAGS+="--set enableACM=true "; else EXTRA_FLAGS+="--set enableACM=false "; fi
+
+    read -p "Enable Multi-Cluster Service Export (Database)? (y/n): " export_choice
+    if [[ "$export_choice" == "y" ]]; then EXTRA_FLAGS+="--set enableExport=true "; else EXTRA_FLAGS+="--set enableExport=false "; fi
 }
 
 get_default_users_only() {
@@ -359,6 +386,22 @@ deploy_no_vms_custom() {
     force_identity_creation
 }
 
+update_policies() {
+    ensure_connected || return
+    read_release_name
+    
+    if ! helm status "$RELEASE_NAME" >/dev/null 2>&1; then
+        echo "Error: Release '$RELEASE_NAME' not found. Please deploy the infrastructure first."
+        return
+    fi
+    
+    ask_extra_policies
+    
+    echo "Updating policies for release '$RELEASE_NAME' in real-time..."
+    helm upgrade "$RELEASE_NAME" "$CHART_DIR" --reuse-values $EXTRA_FLAGS
+    echo "Policies updated successfully! Your VMs were not affected."
+}
+
 uninstall_release() {
     ensure_connected || return
     read_release_name
@@ -474,12 +517,10 @@ uninstall_showroom() {
 
     IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
     for user in "${USER_ARRAY[@]}"; do
-        helm uninstall showroom-${user} --namespace "${user}-application" --ignore-not-found
-        
-        if ! helm status $RELEASE_NAME >/dev/null 2>&1; then
-            kubectl delete namespace "${user}-application" --ignore-not-found
-        fi
+        echo "Uninstalling Showroom for user: $user..."
+        helm uninstall "showroom-${user}" --namespace "${user}-application" --ignore-not-found
     done
+    echo "Showroom uninstalled successfully for all specified users."
 }
 
 if ! oc whoami --request-timeout=2s >/dev/null 2>&1; then
@@ -489,19 +530,20 @@ fi
 
 while true; do
     show_menu
-    read -p "Select an option [1-10]: " choice
+    read -p "Select an option [1-11]: " choice
     echo ""
     case $choice in
         1) deploy_default ;;
         2) deploy_custom ;;
         3) deploy_no_vms_default ;;
         4) deploy_no_vms_custom ;;
-        5) uninstall_release ;;
-        6) uninstall_and_clean ;;
-        7) deploy_showroom ;;
-        8) uninstall_showroom ;;
-        9) cluster_management_menu ;;
-        10) exit 0 ;;
+        5) update_policies ;;
+        6) uninstall_release ;;
+        7) uninstall_and_clean ;;
+        8) deploy_showroom ;;
+        9) uninstall_showroom ;;
+        10) cluster_management_menu ;;
+        11) exit 0 ;;
         *) echo "Invalid option." ;;
     esac
     echo ""

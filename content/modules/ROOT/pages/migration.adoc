@@ -1,0 +1,141 @@
+[[live_migrations]]
+== Live Migrations: Local and Hybrid Cloud
+
+In modern infrastructure, virtual machines shouldn't be tied down to a single physical server—or even a single datacenter. In this module, we will explore two types of Live Migrations that ensure your applications achieve true zero-downtime during maintenance or hybrid cloud scaling.
+
+First, we will perform a **Local Compute Migration** (moving a VM between worker nodes in the same cluster). Then, we will take it to the next level with a **Cross-Cluster Live Migration** (moving a VM from our local datacenter to a remote public cloud).
+
+[[local_live_migration]]
+=== Local Compute Live Migration (Node-to-Node)
+
+Before jumping to the hybrid cloud, let's test a local Live Migration. Administrators often need to evacuate a physical node for hardware maintenance. OpenShift Virtualization allows you to migrate a running VM from one worker node to another without interrupting the application.
+
+For this test, we will migrate the Backend tier (`backend`) to a different node.
+
+. In the OpenShift console, navigate to **Virtualization -> VirtualMachines**.
+. Ensure your `{user}-applications` project is selected.
++
+image::migration/00c.png[link=self, window=blank, width=100%]
+
+. Click on the `backend` VM to open its dedicated dashboard.
+. On the **Overview** page, look at the **Details** tile and find the **Node** field. Make a mental note of the current worker node name.
++
+image::migration/00d.png[link=self, window=blank, width=100%]
+
+. In the top right corner, click the **Actions** dropdown menu and select **Migration** and then **Compute**.
++
+image::migration/00e.png[link=self, window=blank, width=100%]
+
+[NOTE]
+====
+In the local cluster view, the standard "Migrate" action always defaults to a node-to-node compute migration within the same cluster.
+====
+
+. Click **Migrate VirtualMachine** to confirm. OpenShift immediately begins pre-copying the VM's active memory state to the destination node.
++
+image::migration/00f.png[link=self, window=blank, width=100%]
+
+. **The Zero-Downtime Test:** Quickly switch to your browser tab where the frontend application is running and interact with it. The Python backend continues to serve API requests seamlessly while its underlying compute resources are being "teleported" to a new physical server.
+. Return to the OpenShift console. Once the status returns to **Running**, check the **Node** field again. The VM is now running on a completely different worker node!
++
+image::migration/00g.png[link=self, window=blank, width=100%]
+
+---
+
+[[cross_cluster_live_migration]]
+=== Zero-Downtime Cross-Cluster Live Migration
+
+Now that we have proven we can move workloads seamlessly within the same datacenter, it's time to demonstrate the true power of Hybrid Cloud flexibility. We are going to perform a live, cross-cluster migration of our Database tier (`database`) from your local OpenShift cluster to a **remote public cloud cluster**, without interrupting the application's availability.
+
+[NOTE]
+====
+*Pre-configured Environment:* To save time during the lab, the remote target cluster and the underlying network stretch (storage/network mappings) have already been provisioned for you.
+====
+
+==== Accessing Fleet Virtualization
+
+To manage workloads across multiple clusters, we must step back from the local view and use the multi-cluster capabilities provided by Advanced Cluster Management (ACM).
+
+. In the left-hand navigation menu, switch to **Fleet Virtualization**.
++
+image::migration/00.png[link=self, window=blank, width=100%]
+
+. This dashboard gives you a unified inventory of all virtual machines across all connected clusters (Local and Remote).
++
+image::migration/00a.png[link=self, window=blank, width=100%]
+
+. Filter the view to locate the virtual machines in your `{user}-applications` project.
++
+image::migration/00b.png[link=self, window=blank, width=100%]
+
+==== Initiating the Migration to the Remote Cluster
+
+. Locate your `database` VM in the inventory list. Note that its current cluster is your local environment.
+. Click the **kebab menu** (three vertical dots) on the right side of the `database` VM row.
+. Select **Migration**, and then click **Cross cluster migration**.
++
+image::migration/01a.png[link=self, window=blank, width=100%]
+
+. A wizard will appear. Since the target provider is pre-configured, confirm the target cluster settings and click the **Migrate** button to initiate the process.
++
+image::migration/01.png[link=self, window=blank, width=100%]
+
+then:
++
+image::migration/02.png[link=self, window=blank, width=100%]
+
+==== Monitoring the Migration Plan
+
+Once the migration is triggered, OpenShift orchestrates the data synchronization and memory state transfer.
+
+. In the confirmation pop-up (or from the top notifications), click on **View migration plan**.
++
+image::migration/03.png[link=self, window=blank, width=100%]
+
+. On the Migration Plan details page, you can monitor the real-time status:
+  * **Status:** Should indicate *Running*.
+  * **Source Provider:** Your local cluster.
+  * **Target Provider:** The remote public cloud cluster.
++
+image::migration/04.png[link=self, window=blank, width=100%]
+
+. Click on the **VirtualMachines** tab within this plan to see the granular progress of the synchronization. 
++
+image::migration/05.png[link=self, window=blank, width=100%]
+
+. Return to the main **Fleet Virtualization -> VirtualMachines** view. You will see the VM status marked as *Migrating*. Upon successful completion, the source VM will remain in a Stopped state.
++
+image::migration/06.png[link=self, window=blank, width=100%]
+
+==== The Hybrid Zero-Downtime Test
+
+The most critical part of a live migration is that the business does not stop. 
+
+. Open your browser tab where the Tech Day Frontend application is running.
+. **Do NOT refresh the page.** Instead, interact with the application.
+. The application will continue to respond seamlessly. The OpenShift software-defined network automatically routes the traffic to the new VM location the millisecond the cutover happens.
+
+==== Cleaning up the Source VM
+
+When a cross-cluster migration completes successfully, OpenShift leaves the original source VM in a **Stopped** state rather than deleting it. This is a safety mechanism to ensure you have a fallback if you need to abort the cutover at the last second.
+
+. In the **Fleet Virtualization** view, you will now see two `database` VMs:
+  * One *Running* in the remote target cluster.
+  * One *Stopped* in the local cluster.
+. Click the kebab menu on the **Stopped (Local)** VM and select **Delete VirtualMachine** to free up the local resources.
++
+image::migration/07.png[link=self, window=blank, width=100%]
+
+then:
++
+image::migration/08.png[link=self, window=blank, width=100%]
+
+==== The Failback (Remote to Local)
+
+Hybrid cloud is a two-way street. Let's bring our database back home.
+
+. Still in the **Fleet Virtualization** view, locate the *Running* `database` VM (the one currently in the remote cluster).
+. Click the kebab menu -> **Migration** -> **Cross cluster migration**.
+. Select your local cluster as the target and click **Migrate**.
+. Once the migration completes, test your application again to ensure it survived the round-trip.
+. Finally, locate the now **Stopped** VM in the remote cluster, click the kebab menu, and delete it.

@@ -1,14 +1,5 @@
 * xref:index.adoc[Introduction]
 
 * xref:vm-mgmt.adoc[Virtual Machine Management ]
- 
-// One menu depth level for now...
-//** xref:vm-mgmt.adoc#virt_section[Accessing the Virtualization Interface]
-//** xref:vm-mgmt.adoc#explore_virt[Exploring the Virtualization Dashboard]
-//** xref:vm-mgmt.adoc#project_workspace[Identifying Your Project Workspace]
-//** xref:vm-mgmt.adoc#create_vm[Deploying a Linux Virtual Machine]
-//** xref:vm-mgmt.adoc#admin_vms[Day 2 Operations: Administering Virtual Machines]
-//** xref:vm-mgmt.adoc#vm_state[Managing Virtual Machine Power States]
-//** xref:vm-mgmt.adoc#cleanup[Cleaning Up Your Resources]
-
 * xref:vm-app-deploy.adoc[Deploying a 3-Tier Multi-Tier Application]
+* xref:migration.adoc[Live Migrations: Local and Hybrid Cloud]

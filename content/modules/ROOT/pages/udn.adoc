@@ -88,7 +88,6 @@ To achieve network segmentation, we first need to define our User-Defined Networ
 The following example defines network-one UDN:
 
 [.lines_space]
-[.console-input]
 [source,yaml, subs="+macros,+attributes"]
 ----
 apiVersion: k8s.ovn.org/v1
@@ -110,7 +109,7 @@ spec:
 Now, let's deploy the UDNs. You will find the definitions in the `04-udn-networks.yaml` file located in your terminal.
 
 **Deploy UDNs:**
-+
+
 [.lines_space]
 [.console-input]
 [source,bash, subs="+macros,+attributes"]

@@ -1,0 +1,263 @@
+[[multi_network_deployment]]
+= Multi-Tier Network Deployment
+
+Currently, many modern applications are deployed on OpenShift, where the standard Software Defined Network (SDN) or OVN-Kubernetes allows for flat communication. Our "Stock App" is based in this concept. By default, all pods/VMs can talk to each other across the cluster unless specific Network Policies are implemented to restrict traffic.
+
+To understand the shift from container-native networking to advanced VM networking, let’s look at our target 3-tier architecture:
+
+image::udn/udn-current-deployment.png[link=self, window=blank, width=100%]
+
+== Introduction to User-Defined Networks (UDN)
+
+In standard OpenShift/Kubernetes environments, applications typically communicate over a shared pod network. While this works for most modern applications, enterprise workloads, especially Virtual Machines (VMs), often require stricter isolation, custom addressing, and specific topologies that mimic traditional data center environments.
+
+*User-Defined Networks (UDN)*, introduced in OpenShift 4.18, allow users to move beyond the "one-size-fits-all" cluster network. They enable the creation of *private, dedicated networks* that are logically separated from the rest of the cluster traffic.
+
+=== Core Benefits
+
+- *Isolation*: UDNs provide a "tenant-based" approach where traffic is completely segregated, ensuring that workloads in one network cannot see or interfere with another.
+
+- *Customization*: You can define your own IP subnets (CIDR) without worrying about overlapping with other namespaces.
+
+- *Primary Connectivity*: In a UDN-enabled namespace, the user-defined network effectively becomes the primary network for the pods or VMs, replacing the standard pod network.
+
+=== Types of User-Defined Networks
+
+Depending on your architecture, you can implement UDNs at two different scopes:
+
+==== 1. UserDefinedNetwork (Namespace-scoped)
+A UserDefinedNetwork provides network isolation within a single namespace. It creates a private segment with an arbitrary subnet that only VMs in that specific namespace can use. It is the ideal solution for total isolation between different tenants or projects.
+
+==== 2. ClusterUserDefinedNetwork (Cluster-scoped)
+A ClusterUserDefinedNetwork allows VMs located in different namespaces to communicate with each other over the same private network. Managed by cluster administrators, it uses namespace selectors to bridge multiple projects while maintaining isolation from any workloads not connected to that specific cluster UDN.
+
+=== Comparison Summary
+
+[cols="1,1,1", options="header"]
+|===
+| Feature | UserDefinedNetwork | ClusterUserDefinedNetwork
+
+| Scope
+| Single Namespace
+| Multiple Namespaces
+
+| Connectivity
+| Intra-namespace only
+| Cross-namespace
+
+| Managed by
+| Namespace Owner
+| Cluster Administrator
+|===
+
+== The Mission: Migrating from VMs to Segmented Networks
+
+Our goal is to take our already-deployed classic 3-tier VM-based application and modernize its connectivity. Instead of relying on a single flat network, we will migrate this architecture into a segmented networking model. 
+
+We will achieve this by attaching our Virtual Machines to specific, isolated networks to enforce "security by design" at the infrastructure level:
+
+- *Network-One (Web-DMZ)*: This network connects the Frontend Tier and the Backend Tier.
+- *Network-Two (App-Data)*: This network connects the Backend Tier and the Database Tier.
+
+.3-Tier Architecture Network Connectivity
+[cols="1,2,2", options="header"]
+|===
+| Tier | Component | Connected Networks
+
+| *Frontend*
+| Nginx / HTML
+| Default Cluster Network + *Network-One*
+
+| *Backend*
+| Python API
+| *Network-One* + *Network-Two*
+
+| *Database*
+| Redis
+| *Network-Two*
+|===
+
+This image illustrates the migration we are going to perform: 
+
+image::udn/udn-migration.png[link=self, window=blank, width=100%]
+
+== Creating User-Defined Networks (UDN)
+
+To achieve network segmentation, we first need to define our User-Defined Networks. In OpenShift, this is done using the _UserDefinedNetwork_ custom resource. This allows the VMs to have secondary interfaces connected to specific "wires"
+
+The following example defines network-one UDN:
+
+[.lines_space]
+[.console-input]
+[source,yaml, subs="+macros,+attributes"]
+----
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: udn-network-one
+spec:
+  layer2:
+    ipam:
+      lifecycle: Persistent
+    role: Secondary
+    subnets:
+      - 10.10.100.0/24
+  topology: Layer2  
+----
+
+=== Deploying the User-Defined Networks
+
+Now, let's deploy the UDNs. You will find the definitions in the `04-udn-networks.yaml` file located in your terminal.
+
+. **Deploy UDNs:**
++
+[.lines_space]
+[.console-input]
+[source,bash, subs="+macros,+attributes"]
+----
+oc apply -f 04-udn-networks.yaml  -n {user}-application
+----
+
+=== Verifying UDNs in the Console
+
+Once applied, you should verify that the networks are correctly recognized by the cluster.
+
+1. Switch to the *Administrator* perspective.
+2. Navigate to *Networking* -> *UserDefinedNetworks*.
+3. Ensure you are in the correct namespace (`{user}-application`).
+4. Verify that both `network-one` and `network-two` appear
+
+image::udn/udn-creatednetworks.png[link=self, window=blank, width=100%]
+
+
+== Reconfiguring VM Interfaces (Console Method)
+
+With the networks ready, we will now "plug" each Virtual Machine into its corresponding segment using the web interface.
+
+=== 1. Accessing VM Networking
+For each VM (*frontend*, *backend*, and *database*):
+
+1. Go to *Virtualization* -> *VirtualMachines*.
+2. Click on the VM name.
+3. Select the *Configuration* tab and then the *Network* sub-tab (left pane).
+
+image::udn/udn-networkinterfaces.png[link=self, window=blank, width=100%]
+
+=== 2. Adding Interfaces
+
+1. Click the *Add Network Interface*
+2. Fill *Name* and select the *Network*. Example:
+
+image::udn/udn-addinterfaces.png[link=self, window=blank, width=100%]
+
+=== 3. Removing Interfaces
+
+1. Click on the kebab menu of the selected network and click on *Delete*
+
+image::udn/udn-deleteinterface.png[link=self, window=blank, width=100%]
+
+=== 4. Apply add/delete in all VMs
+
+Now that you are familiar with managing VM interfaces, follow the connectivity matrix below to align the virtual machine configurations with our target architecture:
+
+.VM Interface Connectivity Matrix
+[cols="1,1,1,1", options="header"]
+|===
+| VM Name | Action | Interface Name | Network (UDN) 
+
+| *frontend*
+| Add
+| `nic-network-one`
+| `{user}-application/udn-network-one`
+
+| *backend*
+| Add
+| `nic-network-one`
+| `{user}-application/udn-network-one`
+
+| *backend*
+| Add
+| `nic-network-two`
+| `{user}-application/udn-network-two`
+
+| *backend*
+| Delete
+| `default` 
+| `Pod Networking`
+
+| *database*
+| Add
+| `nic-network-two`
+| `{user}-application/udn-network-two`
+
+| *database*
+| Delete
+| `default` 
+| `Pod Networking`
+|===
+
+[NOTE]
+====
+While adding or removing secondary interfaces can be applied "hot" (without restarting the VMs), removing or modifying primary networks—such as the **default pod network**—requires a full restart of the virtual machines to apply the changes.
+
+**Do not restart the VMs at this time**; we will proceed with the current configuration to ensure connectivity is established first.
+====
+
+
+== Updating Application Configuration (ConfigMap)
+
+As you may recall from the initial deployment, the application's connection settings are stored in a **ConfigMap**. 
+
+[IMPORTANT]
+====
+In the original setup, the tiers communicated using **Kubernetes Service names** (e.g., `backend`). However, because **User-Defined Networks (UDN)** do not support cluster-native Service Discovery yet, we must transition to using static IP addresses assigned to the new interfaces.
+====
+
+=== 1. Identifying the New IP Addresses
+Before modifying the configuration, you need to capture the IPs assigned by the UDNs:
+
+1. Go to **Virtualization** -> **VirtualMachines**. In the main **Overview** tab you will find the assigned IP addresses:
+
+Example:
+
+image::udn/udn-deleteinterface.png[link=self, window=blank, width=100%]
+
+2. For the **backend**, check the `NetworkInterfaces` tab and note the IP assigned to *`nic-network-one`* (Network-One).
+3. For the **database**, note the IP assigned to `nic-network-two` (Network-Two).
+
+=== 2. Modifying the ConfigMap via Console
+Update the connection strings to point to the new IPs:
+
+1. Navigate to **ConfigMaps** under the **Workloads** (or Networking) section in the Administrator perspective.
+2. Click on the ConfigMap used by your application `stock-parameters`
+3. Click the **YAML** tab to edit the values.
+4. Replace the service hostnames with the IPs you noted:
+   * Change `BACKEND_URL` to the **backend** IP.
+   * Change `REDIS_HOST` to the **database** IP.
+
+image::udn/udn-configmap.png[link=self, window=blank, width=100%]
+
+5. Click **Save**.
+
+== Finalizing Changes (Restart)
+
+To ensure that the Virtual Machines fully recognize the new network topology and that the application processes pick up the updated ConfigMap values, we must perform a coordinated restart.
+
+1. Go to **Virtualization** -> **VirtualMachines**. In the main **Overview** tab you will find the assigned IP addresses:
+2. Select all three VMs (**frontend**, **backend**, and **database**) from the **VirtualMachines** list.
+3. Click the **Actions** menu and select **Restart**.
+
+image::udn/udn-vm-restart.png[link=self, window=blank, width=100%]
+
+4. Wait for the status of all VMs to return to **Running**.
+
+[TIP]
+====
+You can monitor the boot process via the **Console** tab of each VM to ensure the network interfaces are initialized correctly.
+====
+
+== Final Verification 
+
+After the restart, it is time to verify that our 3-tier application is correctly routing traffic through the new **User-Defined Networks (UDN)** instead of the default pod network.
+
+*Stock App:* `https://stock-{{user}}-application.{openshift_cluster_domain}/`

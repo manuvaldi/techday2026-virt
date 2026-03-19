@@ -475,6 +475,7 @@ deploy_showroom() {
     fi
 
     local console_url=$(oc whoami --show-console)
+    local cluster_domain=$(oc get ingresses.config.openshift.io -o jsonpath='{.spec.domain}' cluster)
     local ui_config_file="../uiConfig"
 
     for user in "${USER_ARRAY[@]}"; do
@@ -483,6 +484,7 @@ cat <<EOF > "/tmp/userdata-${user}.yaml"
 user: ${user}
 links: "true"
 openshift_cluster_console_url: "${console_url}"
+openshift_cluster_domain: "$cluster_domain}"
 EOF
 
         if [ -f "$ui_config_file" ]; then

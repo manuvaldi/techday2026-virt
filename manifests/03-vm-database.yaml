@@ -27,11 +27,13 @@ stringData:
           Image=quay.io/mvalledi/stock-example-app-database:latest
           ContainerName=database
           PublishPort=6379:6379
+          Volume=/var/data:/data:Z
           #Pull=Always
           [Service]
           Restart=always
           RestartSec=5s
           TimeoutStartSec=10
+          ExecStartPre=/usr/bin/bash -c 'mkdir -p /var/data; chmod 777 /var/data'
           [Install]
           WantedBy=multi-user.target default.target
     runcmd:

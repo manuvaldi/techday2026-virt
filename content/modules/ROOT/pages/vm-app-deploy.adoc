@@ -1,5 +1,5 @@
 [[multi_tier_app]]
-== Deploying a 3-Tier Multi-Tier Application
+= Deploying a 3-Tier Multi-Tier Application
 
 Now that you are familiar with basic VM operations, it's time to build something real. For the **Red Hat Tech Day 2026**, we will deploy a complete 3-tier application architecture. This setup simulates a production environment where different components must communicate securely and reliably.
 
@@ -10,7 +10,7 @@ The architecture consists of:
 3. **Frontend Tier (Nginx/html):** Serves the static content and UI.
 
 
-=== Prepare Your Workspace
+== Prepare Your Workspace
 
 Open your terminal and ensure you are working in your assigned project.
 
@@ -40,7 +40,7 @@ If you don't see the files or get a "No such file or directory" error, it means 
 `git clone https://github.com/manuvaldi/techday2026-virt.git ~/techday2026-virt`
 ====
 
-=== Configure Application Parameters (ConfigMap)
+== Configure Application Parameters (ConfigMap)
 
 Before launching the VMs, we need to provide them with the necessary configuration. We will use a **ConfigMap** to define where the Backend and Redis host are located. 
 
@@ -63,7 +63,7 @@ data:
 EOF
 ----
 
-=== Deploying the Virtual Machines
+== Deploying the Virtual Machines
 
 Now, let's deploy the three tiers in order. We'll start with the database so it's ready when the backend tries to connect.
 
@@ -94,7 +94,7 @@ oc apply -f 02-vm-backend.yaml -n {user}-application
 oc apply -f 01-vm-frontend.yaml -n {user}-application
 ----
 
-=== Explore Services and Routes
+== Explore Services and Routes
 
 Once the VMs are in the **Running** state, OpenShift automatically manages their connectivity. 
 
@@ -119,6 +119,6 @@ The Frontend is exposed to the outside world through an OpenShift Route.
 oc get route -n {user}-application
 ----
 
-=== Access the App
+== Access the App
 
 Copy the URL from the `HOST/PORT` column of the `oc get route` command and paste it into your browser. 

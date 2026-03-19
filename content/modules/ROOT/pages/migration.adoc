@@ -1,12 +1,12 @@
 [[live_migrations]]
-== Live Migrations: Local and Hybrid Cloud
+= Live Migrations: Local and Hybrid Cloud
 
 In modern infrastructure, virtual machines shouldn't be tied down to a single physical server—or even a single datacenter. In this module, we will explore two types of Live Migrations that ensure your applications achieve true zero-downtime during maintenance or hybrid cloud scaling.
 
 First, we will perform a **Local Compute Migration** (moving a VM between worker nodes in the same cluster). Then, we will take it to the next level with a **Cross-Cluster Live Migration** (moving a VM from our local datacenter to a remote public cloud).
 
 [[local_live_migration]]
-=== Local Compute Live Migration (Node-to-Node)
+== Local Compute Live Migration (Node-to-Node)
 
 Before jumping to the hybrid cloud, let's test a local Live Migration. Administrators often need to evacuate a physical node for hardware maintenance. OpenShift Virtualization allows you to migrate a running VM from one worker node to another without interrupting the application.
 
@@ -43,7 +43,7 @@ image::migration/00g.png[link=self, window=blank, width=100%]
 ---
 
 [[cross_cluster_live_migration]]
-=== Zero-Downtime Cross-Cluster Live Migration
+== Zero-Downtime Cross-Cluster Live Migration
 
 Now that we have proven we can move workloads seamlessly within the same datacenter, it's time to demonstrate the true power of Hybrid Cloud flexibility. We are going to perform a live, cross-cluster migration of our Database tier (`database`) from your local OpenShift cluster to a **remote public cloud cluster**, without interrupting the application's availability.
 
@@ -52,7 +52,7 @@ Now that we have proven we can move workloads seamlessly within the same datacen
 *Pre-configured Environment:* To save time during the lab, the remote target cluster and the underlying network stretch (storage/network mappings) have already been provisioned for you.
 ====
 
-==== Accessing Fleet Virtualization
+=== Accessing Fleet Virtualization
 
 To manage workloads across multiple clusters, we must step back from the local view and use the multi-cluster capabilities provided by Advanced Cluster Management (ACM).
 
@@ -68,7 +68,7 @@ image::migration/00a.png[link=self, window=blank, width=100%]
 +
 image::migration/00b.png[link=self, window=blank, width=100%]
 
-==== Initiating the Migration to the Remote Cluster
+=== Initiating the Migration to the Remote Cluster
 
 . Locate your `database` VM in the inventory list. Note that its current cluster is your local environment.
 . Click the **kebab menu** (three vertical dots) on the right side of the `database` VM row.
@@ -84,7 +84,7 @@ then:
 +
 image::migration/02.png[link=self, window=blank, width=100%]
 
-==== Monitoring the Migration Plan
+=== Monitoring the Migration Plan
 
 Once the migration is triggered, OpenShift orchestrates the data synchronization and memory state transfer.
 
@@ -107,7 +107,7 @@ image::migration/05.png[link=self, window=blank, width=100%]
 +
 image::migration/06.png[link=self, window=blank, width=100%]
 
-==== The Hybrid Zero-Downtime Test
+=== The Hybrid Zero-Downtime Test
 
 The most critical part of a live migration is that the business does not stop. 
 
@@ -115,7 +115,7 @@ The most critical part of a live migration is that the business does not stop.
 . **Do NOT refresh the page.** Instead, interact with the application.
 . The application will continue to respond seamlessly. The OpenShift software-defined network automatically routes the traffic to the new VM location the millisecond the cutover happens.
 
-==== Cleaning up the Source VM
+=== Cleaning up the Source VM
 
 When a cross-cluster migration completes successfully, OpenShift leaves the original source VM in a **Stopped** state rather than deleting it. This is a safety mechanism to ensure you have a fallback if you need to abort the cutover at the last second.
 
@@ -130,7 +130,7 @@ then:
 +
 image::migration/08.png[link=self, window=blank, width=100%]
 
-==== The Failback (Remote to Local)
+=== The Failback (Remote to Local)
 
 Hybrid cloud is a two-way street. Let's bring our database back home.
 

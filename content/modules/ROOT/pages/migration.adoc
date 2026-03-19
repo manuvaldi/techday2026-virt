@@ -3,12 +3,12 @@
 
 In modern infrastructure, virtual machines shouldn't be tied down to a single physical server—or even a single datacenter. In this module, we will explore two types of Live Migrations that ensure your applications achieve true zero-downtime during maintenance or hybrid cloud scaling.
 
-First, we will perform a **Local Compute Migration** (moving a VM between worker nodes in the same cluster). Then, we will take it to the next level with a **Cross-Cluster Live Migration** (moving a VM from our local datacenter to a remote public cloud).
+First, we will perform a **Compute Live Migration** (moving a VM between worker nodes in the same cluster). Then, we will take it to the next level with a **Cross-Cluster Live Migration** (moving a VM from our local datacenter to a remote public cloud).
 
 [[local_live_migration]]
-== Local Compute Live Migration (Node-to-Node)
+== Compute Live Migration (Node-to-Node)
 
-Before jumping to the hybrid cloud, let's test a local Live Migration. Administrators often need to evacuate a physical node for hardware maintenance. OpenShift Virtualization allows you to migrate a running VM from one worker node to another without interrupting the application.
+Before jumping to the hybrid cloud, let's test a compute Live Migration. Administrators often need to evacuate a physical node for hardware maintenance. OpenShift Virtualization allows you to migrate a running VM from one worker node to another without interrupting the application.
 
 For this test, we will migrate the Backend tier (`backend`) to a different node.
 
@@ -43,7 +43,7 @@ image::migration/00g.png[link=self, window=blank, width=100%]
 ---
 
 [[cross_cluster_live_migration]]
-== Zero-Downtime Cross-Cluster Live Migration
+== Cross-Cluster Live Migration (Cluster-to-Cluster)
 
 Now that we have proven we can move workloads seamlessly within the same datacenter, it's time to demonstrate the true power of Hybrid Cloud flexibility. We are going to perform a live, cross-cluster migration of our Database tier (`database`) from your local OpenShift cluster to a **remote public cloud cluster**, without interrupting the application's availability.
 
@@ -126,7 +126,7 @@ When a cross-cluster migration completes successfully, OpenShift leaves the orig
 +
 image::migration/07.png[link=self, window=blank, width=100%]
 
-then:
+. then:
 +
 image::migration/08.png[link=self, window=blank, width=100%]
 

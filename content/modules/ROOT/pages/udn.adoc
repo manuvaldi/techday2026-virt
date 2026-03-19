@@ -148,7 +148,7 @@ image::udn/udn-networkinterfaces.png[link=self, window=blank, width=100%]
 - Click the *Add Network Interface*
 - Fill *Name* and select the *Network*. Example:
 
-image::udn/udn-addinterfaces.png[link=self, window=blank, width=100%]
+image::udn/udn-addinterface.png[link=self, window=blank, width=100%]
 
 === 3. Removing Interfaces
 
@@ -260,4 +260,4 @@ You can monitor the boot process via the **Console** tab of each VM to ensure th
 
 After the restart, it is time to verify that our 3-tier application is correctly routing traffic through the new **User-Defined Networks (UDN)** instead of the default pod network.
 
-*Stock App:* `https://stock-{{user}}-application.{openshift_cluster_domain}/`
+*Stock App:* `https://stock-{user}-application.{openshift_cluster_domain}/`

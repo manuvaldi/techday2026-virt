@@ -484,7 +484,7 @@ cat <<EOF > "/tmp/userdata-${user}.yaml"
 user: ${user}
 links: "true"
 openshift_cluster_console_url: "${console_url}"
-openshift_cluster_domain: "$cluster_domain}"
+openshift_cluster_domain: "${cluster_domain}"
 EOF
 
         if [ -f "$ui_config_file" ]; then

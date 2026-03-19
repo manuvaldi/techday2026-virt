@@ -13,7 +13,7 @@ Before we dive into the migration process, please ensure you can access your ass
 [IMPORTANT]
 .Your Cluster Access Details
 ====
-* *Web Console URL:* `{openshift_cluster_console_url}`
+* *Web Console URL:* {openshift_cluster_console_url}[{openshift_cluster_console_url}^]
 * *Username:* `{user}`
 ====
 

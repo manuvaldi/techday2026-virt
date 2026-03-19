@@ -259,4 +259,4 @@ You can monitor the boot process via the **Console** tab of each VM to ensure th
 
 After the restart, it is time to verify that our 3-tier application is correctly routing traffic through the new **User-Defined Networks (UDN)** instead of the default pod network.
 
-*Stock App:* `https://stock-{user}-application.{openshift_cluster_domain}/`
+*Stock App:* https://stock-{user}-application.{openshift_cluster_domain}/[https://stock-{user}-application.{openshift_cluster_domain}/^]

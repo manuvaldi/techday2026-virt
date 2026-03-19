@@ -109,7 +109,7 @@ spec:
 
 Now, let's deploy the UDNs. You will find the definitions in the `04-udn-networks.yaml` file located in your terminal.
 
-. **Deploy UDNs:**
+**Deploy UDNs:**
 +
 [.lines_space]
 [.console-input]
@@ -122,10 +122,10 @@ oc apply -f 04-udn-networks.yaml  -n {user}-application
 
 Once applied, you should verify that the networks are correctly recognized by the cluster.
 
-1. Switch to the *Administrator* perspective.
-2. Navigate to *Networking* -> *UserDefinedNetworks*.
-3. Ensure you are in the correct namespace (`{user}-application`).
-4. Verify that both `network-one` and `network-two` appear
+- Switch to the *Administrator* perspective.
+- Navigate to *Networking* -> *UserDefinedNetworks*.
+- Ensure you are in the correct namespace (`{user}-application`).
+- Verify that both `network-one` and `network-two` appear
 
 image::udn/udn-creatednetworks.png[link=self, window=blank, width=100%]
 
@@ -137,22 +137,22 @@ With the networks ready, we will now "plug" each Virtual Machine into its corres
 === 1. Accessing VM Networking
 For each VM (*frontend*, *backend*, and *database*):
 
-1. Go to *Virtualization* -> *VirtualMachines*.
-2. Click on the VM name.
-3. Select the *Configuration* tab and then the *Network* sub-tab (left pane).
+- Go to *Virtualization* -> *VirtualMachines*.
+- Click on the VM name.
+- Select the *Configuration* tab and then the *Network* sub-tab (left pane).
 
 image::udn/udn-networkinterfaces.png[link=self, window=blank, width=100%]
 
 === 2. Adding Interfaces
 
-1. Click the *Add Network Interface*
-2. Fill *Name* and select the *Network*. Example:
+- Click the *Add Network Interface*
+- Fill *Name* and select the *Network*. Example:
 
 image::udn/udn-addinterfaces.png[link=self, window=blank, width=100%]
 
 === 3. Removing Interfaces
 
-1. Click on the kebab menu of the selected network and click on *Delete*
+- Click on the kebab menu of the selected network and click on *Delete*
 
 image::udn/udn-deleteinterface.png[link=self, window=blank, width=100%]
 
@@ -161,7 +161,7 @@ image::udn/udn-deleteinterface.png[link=self, window=blank, width=100%]
 Now that you are familiar with managing VM interfaces, follow the connectivity matrix below to align the virtual machine configurations with our target architecture:
 
 .VM Interface Connectivity Matrix
-[cols="1,1,1,1", options="header"]
+[cols="2,1,2,3", options="header"]
 |===
 | VM Name | Action | Interface Name | Network (UDN) 
 
@@ -216,22 +216,22 @@ In the original setup, the tiers communicated using **Kubernetes Service names**
 === 1. Identifying the New IP Addresses
 Before modifying the configuration, you need to capture the IPs assigned by the UDNs:
 
-1. Go to **Virtualization** -> **VirtualMachines**. In the main **Overview** tab you will find the assigned IP addresses:
+- Go to **Virtualization** -> **VirtualMachines**. In the main **Overview** tab you will find the assigned IP addresses:
 
 Example:
 
 image::udn/udn-deleteinterface.png[link=self, window=blank, width=100%]
 
-2. For the **backend**, check the `NetworkInterfaces` tab and note the IP assigned to *`nic-network-one`* (Network-One).
-3. For the **database**, note the IP assigned to `nic-network-two` (Network-Two).
+- For the **backend**, check the `NetworkInterfaces` tab and note the IP assigned to *`nic-network-one`* (Network-One).
+- For the **database**, note the IP assigned to `nic-network-two` (Network-Two).
 
 === 2. Modifying the ConfigMap via Console
 Update the connection strings to point to the new IPs:
 
-1. Navigate to **ConfigMaps** under the **Workloads** (or Networking) section in the Administrator perspective.
-2. Click on the ConfigMap used by your application `stock-parameters`
-3. Click the **YAML** tab to edit the values.
-4. Replace the service hostnames with the IPs you noted:
+- Navigate to **ConfigMaps** under the **Workloads** (or Networking) section in the Administrator perspective.
+- Click on the ConfigMap used by your application `stock-parameters`
+- Click the **YAML** tab to edit the values.
+- Replace the service hostnames with the IPs you noted:
    * Change `BACKEND_URL` to the **backend** IP.
    * Change `REDIS_HOST` to the **database** IP.
 
@@ -243,9 +243,9 @@ image::udn/udn-configmap.png[link=self, window=blank, width=100%]
 
 To ensure that the Virtual Machines fully recognize the new network topology and that the application processes pick up the updated ConfigMap values, we must perform a coordinated restart.
 
-1. Go to **Virtualization** -> **VirtualMachines**. In the main **Overview** tab you will find the assigned IP addresses:
-2. Select all three VMs (**frontend**, **backend**, and **database**) from the **VirtualMachines** list.
-3. Click the **Actions** menu and select **Restart**.
+- Go to **Virtualization** -> **VirtualMachines**. In the main **Overview** tab you will find the assigned IP addresses:
+- Select all three VMs (**frontend**, **backend**, and **database**) from the **VirtualMachines** list.
+- Click the **Actions** menu and select **Restart**.
 
 image::udn/udn-vm-restart.png[link=self, window=blank, width=100%]
 

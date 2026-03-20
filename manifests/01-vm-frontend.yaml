@@ -41,8 +41,6 @@ stringData:
       - systemctl daemon-reload
       - systemctl start frontend
       - systemctl enable --now frontend
-      - nmcli connection modify "cloud-init enp1s0" ipv4.dns-search "svc.clusterset.local, svc.cluster.local, clusterset.local, cluster.local" 
-      - nmcli connection up "cloud-init enp1s0"       
 ---
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
@@ -99,7 +97,7 @@ spec:
             - disk:
                 bus: virtio
               name: environment-disk
-              serial: O9RLWI              
+              serial: O9RLWI
           interfaces:
             - masquerade: {}
               model: virtio
@@ -128,10 +126,10 @@ spec:
         - name: cloudinitdisk
           cloudInitNoCloud:
             secretRef:
-              name: cloud-init-frontend              
+              name: cloud-init-frontend
         - configMap:
             name: stock-parameters
-          name: environment-disk             
+          name: environment-disk
 ---
 apiVersion: v1
 kind: Service

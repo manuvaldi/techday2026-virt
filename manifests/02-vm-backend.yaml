@@ -30,6 +30,7 @@ stringData:
           Environment=PYTHONUNBUFFERED=1
           EnvironmentFile=/var/env/podman.env
           Environment=REDIS_PORT=6379
+          DNSSearch=svc.clusterset.local
           [Service]
           Restart=always
           RestartSec=5s
@@ -43,8 +44,6 @@ stringData:
       - systemctl daemon-reload
       - systemctl start backend
       - systemctl enable --now backend
-      - nmcli connection modify "cloud-init enp1s0" ipv4.dns-search "svc.clusterset.local, svc.cluster.local, clusterset.local, cluster.local" 
-      - nmcli connection up "cloud-init enp1s0"   
 ---
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine

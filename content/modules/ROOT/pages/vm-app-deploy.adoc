@@ -1,12 +1,12 @@
 [[multi_tier_app]]
 = Deploying a Multi-Tier Application
+:page-pagination:
 
 Now that you are familiar with basic VM operations, it's time to build something real. For the **Red Hat Tech Day 2026**, we will deploy a complete 3-tier application architecture: *"Stock App"*. This setup simulates a production environment where different components must communicate securely and reliably.
 
 Our *"Stock App"* is a real-time monitoring application featuring a Python Flask backend and a modern web frontend. The system follows a strict tiered architecture where the Frontend communicates exclusively with the Backend, which in turn manages all operations with the Redis database to store and retrieve price history. This design ensures high resilience, automatically reconnecting and recovering its state to provide continuous data generation and visualization without interruptions.
 
-[.text-center]
-image::migration/stockapp.gif[link=self, window=blank, width=60%]
+image::migration/stockapp.gif[align="center", width="60%", link="self", window="_blank"]
 
 The components consists of:
 

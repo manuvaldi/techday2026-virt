@@ -1,5 +1,6 @@
 [[multi_network_deployment]]
 = Multi-Tier Network Deployment
+:page-pagination:
 
 Currently, many modern applications are deployed on OpenShift, where the standard Software Defined Network (SDN) or OVN-Kubernetes allows for flat communication. Our "Stock App" is based in this concept. By default, all pods/VMs can talk to each other across the cluster unless specific Network Policies are implemented to restrict traffic.
 

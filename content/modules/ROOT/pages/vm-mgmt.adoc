@@ -1,5 +1,5 @@
 = Virtual Machine Management
-
+:page-pagination:
 == Exploring the OpenShift Virtualization Interface
 
 This initial section of the lab is designed to get you comfortable with the fundamentals of deploying and administrating virtual machines using OpenShift Virtualization. 

@@ -1,5 +1,6 @@
 [[live_migrations]]
 = Live Migrations: Local and Hybrid Cloud
+:page-pagination:
 
 In modern infrastructure, virtual machines shouldn't be tied down to a single physical server—or even a single datacenter/cluster. In this module, we will explore two types of Live Migrations that ensure your applications achieve true zero-downtime during maintenance or hybrid cloud scaling.
 

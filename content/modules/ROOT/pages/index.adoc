@@ -1,5 +1,5 @@
 = Red Hat Tech Day 2026 - OpenShift Virtualization: Zero-Downtime Hybrid Migration and Multi-Tier Apps
-
+:page-pagination:
 :navtitle: Red Hat Tech Day 2026
 
 Welcome to the Techday 2026 Hands-on Lab. In this session, you will learn how to seamlessly bring traditional virtual machine workloads into a cloud-native environment using OpenShift Virtualization. 

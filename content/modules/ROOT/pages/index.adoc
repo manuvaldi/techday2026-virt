@@ -19,9 +19,9 @@ Before we dive into the migration process, please ensure you can access your ass
 
 == Getting Started: Environment Setup
 
-To begin, you need to prepare your local terminal. We have provided a repository containing all the necessary YAML manifests, scripts, and configuration files you will need throughout this lab.
+To begin, you need to prepare your local terminal (in the right-hand panel)). We have provided a repository containing all the necessary YAML manifests, scripts, and configuration files you will need throughout this lab.
 
-Open your terminal and run the following commands to clone the lab repository and prepare your workspace:
+Focus on your terminal and run the following commands to clone the lab repository and prepare your workspace:
 
 [.lines_space]
 [.console-input]

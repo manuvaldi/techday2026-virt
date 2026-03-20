@@ -17,7 +17,7 @@ Finally, we will transition into typical Day 2 administrator tasks, including tw
 [NOTE]
 .Environment Access Reminder
 ====
-Before proceeding, please ensure you are logged into your cluster environment:
+Before proceeding, please ensure you are logged into the OpenShift web console:
 
 * *OpenShift Web Console:* {openshift_cluster_console_url}[here^]
 * *Username:* `{user}`
@@ -41,7 +41,7 @@ After expanding the **Virtualization** section in the side menu, you will land o
 
 [NOTE]
 ====
-While Advanced Cluster Management (ACM) offers a **Fleet Virtualization** perspective for cross-cluster visibility, the section we are exploring now is the **Integrated Virtualization** view. This view provides the full set of administrative tools (Storage, Networking, Templates) needed for deep management of VMs within this specific clúster.
+While Advanced Cluster Management (ACM) - installed in this cluster - offers a **Fleet Virtualization** perspective for multi-cluster visibility, the section we are exploring now is the **Integrated Virtualization** view. This view provides the full set of administrative tools (Storage, Networking, Templates) needed for deep management of VMs within this specific clúster.
 ====
 
 . Click on **VirtualMachines** in the left-hand navigation sub-menu. This opens the **Virtualization Tree View**, which is the most efficient way to manage VM assets at scale.

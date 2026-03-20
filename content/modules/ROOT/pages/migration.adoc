@@ -1,9 +1,9 @@
 [[live_migrations]]
 = Live Migrations: Local and Hybrid Cloud
 
-In modern infrastructure, virtual machines shouldn't be tied down to a single physical server—or even a single datacenter. In this module, we will explore two types of Live Migrations that ensure your applications achieve true zero-downtime during maintenance or hybrid cloud scaling.
+In modern infrastructure, virtual machines shouldn't be tied down to a single physical server—or even a single datacenter/cluster. In this module, we will explore two types of Live Migrations that ensure your applications achieve true zero-downtime during maintenance or hybrid cloud scaling.
 
-First, we will perform a **Compute Live Migration** (moving a VM between worker nodes in the same cluster). Then, we will take it to the next level with a **Cross-Cluster Live Migration** (moving a VM from our local datacenter to a remote public cloud).
+First, we will perform a **Compute Live Migration** (moving a VM between worker nodes in the same cluster). Then, we will take it to the next level with a **Cross-Cluster Live Migration** (moving a VM from our local cluster to a remote public cloud cluster).
 
 [[local_live_migration]]
 == Compute Live Migration (Node-to-Node)
@@ -70,16 +70,16 @@ image::migration/00b.png[link=self, window=blank, width=100%]
 
 === Initiating the Migration to the Remote Cluster
 
-. Locate your `database` VM in the inventory list. Note that its current cluster is your local environment.
+. Locate your `database` VM in the inventory list. Note that its current cluster is your local environment (`local-cluster`).
 . Click the **kebab menu** (three vertical dots) on the right side of the `database` VM row.
 . Select **Migration**, and then click **Cross cluster migration**.
 +
 image::migration/01a.png[link=self, window=blank, width=100%]
 
-. A wizard will appear. Since the target provider is pre-configured, confirm the target cluster settings and click the **Migrate** button to initiate the process.
+. A wizard will appear. Since the target provider is pre-configured, select the target namespace (which matches the source namespace and has been pre-created for you), confirm the cluster settings, and click **Migrate** to initiate the process.
 +
 image::migration/01.png[link=self, window=blank, width=100%]
-
++
 then:
 +
 image::migration/02.png[link=self, window=blank, width=100%]
@@ -111,7 +111,7 @@ image::migration/06.png[link=self, window=blank, width=100%]
 
 The most critical part of a live migration is that the business does not stop. 
 
-. Open your browser tab where the Tech Day Frontend application is running.
+. Open your browser tab where our "Stock App" is running.
 . **Do NOT refresh the page.** Instead, interact with the application.
 . The application will continue to respond seamlessly. The OpenShift software-defined network automatically routes the traffic to the new VM location the millisecond the cutover happens.
 
@@ -136,6 +136,6 @@ Hybrid cloud is a two-way street. Let's bring our database back home.
 
 . Still in the **Fleet Virtualization** view, locate the *Running* `database` VM (the one currently in the remote cluster).
 . Click the kebab menu -> **Migration** -> **Cross cluster migration**.
-. Select your local cluster as the target and click **Migrate**.
+. Select your `local-cluster` as the cluster target, the namespace with the same name as namespace target, and click **Migrate**.
 . Once the migration completes, test your application again to ensure it survived the round-trip.
 . Finally, locate the now **Stopped** VM in the remote cluster, click the kebab menu, and delete it.

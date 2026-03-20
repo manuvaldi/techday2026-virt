@@ -106,9 +106,7 @@ spec:
 
 === Deploying the User-Defined Networks
 
-Now, let's deploy the UDNs. You will find the definitions in the `04-udn-networks.yaml` file located in your terminal.
-
-**Deploy UDNs:**
+Now, let's deploy the UDNs. You will find the definitions in the `04-udn-networks.yaml` file located in your terminal (in the right-hand panel).
 
 [.lines_space]
 [.console-input]
@@ -131,7 +129,7 @@ image::udn/udn-creatednetworks.png[link=self, window=blank, width=100%]
 
 == Reconfiguring VM Interfaces (Console Method)
 
-With the networks ready, we will now "plug" each Virtual Machine into its corresponding segment using the web interface.
+With the networks ready, we will now attach and detach network interfaces on each Virtual Machine to their corresponding segments using the web interface. How can this be done? Let's see.
 
 === 1. Accessing VM Networking
 For each VM (*frontend*, *backend*, and *database*):
@@ -219,7 +217,7 @@ Before modifying the configuration, you need to capture the IPs assigned by the 
 
 Example:
 
-image::udn/udn-deleteinterface.png[link=self, window=blank, width=100%]
+image::udn/udn-ipaddress.png[link=self, window=blank, width=100%]
 
 - For the **backend**, check the `NetworkInterfaces` tab and note the IP assigned to *`nic-network-one`* (Network-One).
 - For the **database**, note the IP assigned to `nic-network-two` (Network-Two).

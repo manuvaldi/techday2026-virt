@@ -1,18 +1,22 @@
 [[multi_tier_app]]
 = Deploying a Multi-Tier Application
 
-Now that you are familiar with basic VM operations, it's time to build something real. For the **Red Hat Tech Day 2026**, we will deploy a complete 3-tier application architecture. This setup simulates a production environment where different components must communicate securely and reliably.
+Now that you are familiar with basic VM operations, it's time to build something real. For the **Red Hat Tech Day 2026**, we will deploy a complete 3-tier application architecture: *"Stock App"*. This setup simulates a production environment where different components must communicate securely and reliably.
 
-The architecture consists of:
+Our *"Stock App"* is a real-time monitoring application featuring a Python Flask backend and a modern web frontend. The system follows a strict tiered architecture where the Frontend communicates exclusively with the Backend, which in turn manages all operations with the Redis database to store and retrieve price history. This design ensures high resilience, automatically reconnecting and recovering its state to provide continuous data generation and visualization without interruptions.
+
+The components consists of:
 
 1. **Database Tier (redis):** Provides high-performance in-memory data storage.
 2. **Backend Tier (Python API):** Processing business logic and connecting to the DB.
 3. **Frontend Tier (Nginx/html):** Serves the static content and UI.
 
+image::udn/udn-current-deployment.png[link=self, window=blank, width=100%]
+
 
 == Prepare Your Workspace
 
-Open your terminal and ensure you are working in your assigned project.
+Focus on your terminal (in the right-hand panel) and ensure you are working in your assigned project.
 
 . **Select your project namespace:**
 +
@@ -98,7 +102,10 @@ oc apply -f 01-vm-frontend.yaml -n {user}-application
 
 Once the VMs are in the **Running** state, OpenShift automatically manages their connectivity. 
 
-. **Check the Services:**
+
+. **Services:**
++
+Services allow us to access VMs regardless of the SDN-assigned IP address they receive.
 +
 [.lines_space]
 [.console-input]
@@ -110,15 +117,21 @@ oc get svc -n {user}-application
 Notice that each VM has a corresponding Service. This allows the Frontend VM to talk to the Backend VM using the hostname `backend`, and the Backend to talk to Redis using `database`.
 
 . **Find your Route:**
-The Frontend is exposed to the outside world through an OpenShift Route.
+The Frontend is exposed to the outside world through an OpenShift Route named `stock`.
 +
 [.lines_space]
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-oc get route -n {user}-application
+oc get route -n {user}-application stock
 ----
 
 == Access the App
 
-Copy the URL from the `HOST/PORT` column of the `oc get route` command and paste it into your browser. 
+Copy the URL from the `HOST/PORT` column of the `oc get route` command and paste it into your browser. Or use this link:
+
+
+*Stock App:* https://stock-{user}-application.{openshift_cluster_domain}/[https://stock-{user}-application.{openshift_cluster_domain}/^]
+
+
+

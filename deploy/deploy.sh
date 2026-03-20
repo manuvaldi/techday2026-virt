@@ -186,6 +186,9 @@ ask_extra_policies() {
     read -p "Enable Advanced Cluster Management (ACM) global roles? (y/n): " acm_choice
     if [[ "$acm_choice" == "y" ]]; then EXTRA_FLAGS+="--set enableACM=true "; else EXTRA_FLAGS+="--set enableACM=false "; fi
 
+    read -p "Enable Database Service (Local)? (y/n): " db_service_choice
+    if [[ "$db_service_choice" == "y" ]]; then EXTRA_FLAGS+="--set enableDatabaseService=true "; else EXTRA_FLAGS+="--set enableDatabaseService=false "; fi
+
     read -p "Enable Multi-Cluster Service Export (Database)? (y/n): " export_choice
     if [[ "$export_choice" == "y" ]]; then EXTRA_FLAGS+="--set enableExport=true "; else EXTRA_FLAGS+="--set enableExport=false "; fi
 }
@@ -315,9 +318,13 @@ generate_and_apply_passwords() {
 }
 
 force_identity_creation() {
-    echo "Waiting for OAuth server to reload new credentials (this can take 1-2 minutes)..."
+    echo "Forcing OAuth server to reload new credentials (this can take 1-2 minutes)..."
+    
+    oc delete pod -l app=oauth-openshift -n openshift-authentication >/dev/null 2>&1
     
     oc rollout status deployment/oauth-openshift -n openshift-authentication --timeout=180s >/dev/null 2>&1
+    
+    sleep 10
     
     echo "Forcing identity creation via oc login..."
     
@@ -331,11 +338,22 @@ force_identity_creation() {
         local password=$(echo "$pass_part" | awk -F': ' '{print $2}' | tr -d ' ')
         
         if [ -n "$user" ] && [ -n "$password" ]; then
-            oc login -u "$user" -p "$password" --server="$cluster_server" --insecure-skip-tls-verify=true >/dev/null 2>&1
-            if [ $? -eq 0 ]; then
-                echo " - Identity created for $user"
-            else
-                echo " - Failed to create identity for $user (Login failed)"
+            local retries=0
+            local success=0
+            while [ $retries -lt 5 ]; do
+                oc login -u "$user" -p "$password" --server="$cluster_server" --insecure-skip-tls-verify=true >/dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                    echo " - Identity created for $user"
+                    success=1
+                    break
+                else
+                    retries=$((retries+1))
+                    sleep 5
+                fi
+            done
+            
+            if [ $success -eq 0 ]; then
+                echo " - Failed to create identity for $user (Login failed after 5 attempts)"
             fi
         fi
     done < lab_credentials.txt
@@ -395,11 +413,41 @@ update_policies() {
         return
     fi
     
+    get_users || return
     ask_extra_policies
+    
+    echo "Checking for orphaned resources (Service / ServiceExport) to adopt them for Helm..."
+    
+    IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
+    
+    for user in "${USER_ARRAY[@]}"; do
+        local ns="${user}-application"
+        
+        if oc get service database -n "$ns" >/dev/null 2>&1; then
+            if ! oc get service database -n "$ns" -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null | grep -q "Helm"; then
+                echo " - Adopting Service 'database' in $ns..."
+                oc annotate service database -n "$ns" meta.helm.sh/release-name="$RELEASE_NAME" meta.helm.sh/release-namespace="default" --overwrite >/dev/null 2>&1
+                oc label service database -n "$ns" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null 2>&1
+            fi
+        fi
+
+        if oc get serviceexport database -n "$ns" >/dev/null 2>&1; then
+            if ! oc get serviceexport database -n "$ns" -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null | grep -q "Helm"; then
+                echo " - Adopting ServiceExport 'database' in $ns..."
+                oc annotate serviceexport database -n "$ns" meta.helm.sh/release-name="$RELEASE_NAME" meta.helm.sh/release-namespace="default" --overwrite >/dev/null 2>&1
+                oc label serviceexport database -n "$ns" app.kubernetes.io/managed-by=Helm --overwrite >/dev/null 2>&1
+            fi
+        fi
+    done
     
     echo "Updating policies for release '$RELEASE_NAME' in real-time..."
     helm upgrade "$RELEASE_NAME" "$CHART_DIR" --reuse-values $EXTRA_FLAGS
-    echo "Policies updated successfully! Your VMs were not affected."
+    
+    if [ $? -eq 0 ]; then
+        echo "Policies updated successfully! Your VMs were not affected."
+    else
+        echo -e "\nError: The Helm upgrade failed. See the output above."
+    fi
 }
 
 uninstall_release() {
@@ -413,12 +461,23 @@ uninstall_and_clean() {
     read_release_name
     get_users || return
     
+    echo "Uninstalling release '$RELEASE_NAME'..."
     helm uninstall "$RELEASE_NAME"
 
-    IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
+    echo "Deep cleaning namespaces, users, and identities..."
+    local IFS=','
+    read -ra USER_ARRAY <<< "$CURRENT_USERS"
     for user in "${USER_ARRAY[@]}"; do
-        kubectl delete namespace "${user}-application" --ignore-not-found
+        oc delete namespace "${user}-application" --ignore-not-found >/dev/null 2>&1
+        
+        oc delete user "$user" --ignore-not-found >/dev/null 2>&1
+        
+        oc delete identity "lab-users-htpasswd:${user}" --ignore-not-found >/dev/null 2>&1
     done
+    
+    rm -f users.htpasswd lab_credentials.txt
+    
+    echo "Cleanup complete! The environment is 100% clean."
 }
 
 inject_oauth_proxy() {
@@ -462,8 +521,8 @@ deploy_showroom() {
 
     IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
     for user in "${USER_ARRAY[@]}"; do
-        if ! kubectl get namespace "${user}-application" >/dev/null 2>&1; then
-            kubectl create namespace "${user}-application" >/dev/null 2>&1
+        if ! oc get namespace "${user}-application" >/dev/null 2>&1; then
+            oc create namespace "${user}-application" >/dev/null 2>&1
         fi
     done
 

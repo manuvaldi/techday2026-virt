@@ -1,5 +1,6 @@
-{{- if .Values.enableExport }}
 {{- range .Values.rbac.users }}
+
+{{- if $.Values.enableDatabaseService }}
 ---
 apiVersion: v1
 kind: Service
@@ -13,6 +14,9 @@ spec:
     - protocol: TCP
       port: 6379
       targetPort: 6379
+{{- end }}
+
+{{- if $.Values.enableExport }}
 ---
 apiVersion: multicluster.x-k8s.io/v1alpha1
 kind: ServiceExport
@@ -20,4 +24,5 @@ metadata:
   name: database
   namespace: {{ . }}-application
 {{- end }}
+
 {{- end }}

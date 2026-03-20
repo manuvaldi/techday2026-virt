@@ -114,7 +114,7 @@ Now, let's deploy the UDNs. You will find the definitions in the `04-udn-network
 [.console-input]
 [source,bash, subs="+macros,+attributes"]
 ----
-oc apply -f 04-udn-networks.yaml  -n {user}-application
+oc apply -f 04-udn-networks.yaml -n {user}-application
 ----
 
 === Verifying UDNs in the Console
@@ -236,7 +236,7 @@ Update the connection strings to point to the new IPs:
 
 image::udn/udn-configmap.png[link=self, window=blank, width=100%]
 
-5. Click **Save**.
+-  Click **Save**.
 
 == Finalizing Changes (Restart)
 
@@ -248,7 +248,7 @@ To ensure that the Virtual Machines fully recognize the new network topology and
 
 image::udn/udn-vm-restart.png[link=self, window=blank, width=100%]
 
-4. Wait for the status of all VMs to return to **Running**.
+- Wait for the status of all VMs to return to **Running**.
 
 [TIP]
 ====

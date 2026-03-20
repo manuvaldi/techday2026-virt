@@ -1,5 +1,5 @@
 [[multi_tier_app]]
-= Deploying a 3-Tier Multi-Tier Application
+= Deploying a Multi-Tier Application
 
 Now that you are familiar with basic VM operations, it's time to build something real. For the **Red Hat Tech Day 2026**, we will deploy a complete 3-tier application architecture. This setup simulates a production environment where different components must communicate securely and reliably.
 

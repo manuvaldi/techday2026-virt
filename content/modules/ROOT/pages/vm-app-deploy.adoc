@@ -5,6 +5,8 @@ Now that you are familiar with basic VM operations, it's time to build something
 
 Our *"Stock App"* is a real-time monitoring application featuring a Python Flask backend and a modern web frontend. The system follows a strict tiered architecture where the Frontend communicates exclusively with the Backend, which in turn manages all operations with the Redis database to store and retrieve price history. This design ensures high resilience, automatically reconnecting and recovering its state to provide continuous data generation and visualization without interruptions.
 
+image::migration/stockapp.gif[link=self, window=blank, width=60%, align=center]
+
 The components consists of:
 
 1. **Database Tier (redis):** Provides high-performance in-memory data storage.
@@ -97,6 +99,10 @@ oc apply -f 02-vm-backend.yaml -n {user}-application
 ----
 oc apply -f 01-vm-frontend.yaml -n {user}-application
 ----
+
+image::migration/00a.png[link=self, window=blank, width=100%]
+
+
 
 == Explore Services and Routes
 

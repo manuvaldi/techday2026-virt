@@ -76,7 +76,7 @@ image::migration/00b.png[link=self, window=blank, width=100%]
 +
 image::migration/01a.png[link=self, window=blank, width=100%]
 
-. A wizard will appear. Since the target provider is pre-configured, select the target namespace (which matches the source namespace and has been pre-created for you), confirm the cluster settings, and click **Migrate** to initiate the process.
+. A wizard will appear. Since the *Target cluster* is pre-configured, select the *Target project* (which matches the source project and has been pre-created for you), confirm the cluster settings, and click **Migrate** to initiate the process.
 +
 image::migration/01.png[link=self, window=blank, width=100%]
 +

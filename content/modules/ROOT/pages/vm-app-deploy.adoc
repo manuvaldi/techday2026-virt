@@ -6,7 +6,16 @@ Now that you are familiar with basic VM operations, it's time to build something
 
 Our *"Stock App"* is a real-time monitoring application featuring a Python Flask backend and a modern web frontend. The system follows a strict tiered architecture where the Frontend communicates exclusively with the Backend, which in turn manages all operations with the Redis database to store and retrieve price history. This design ensures high resilience, automatically reconnecting and recovering its state to provide continuous data generation and visualization without interruptions.
 
-image::migration/stockapp.gif[align="center", width="60%", link="self", window="_blank"]
+++++
+<style>
+table.table-borderless, table.table-borderless tr, table.table-borderless td { border: none !important; background: transparent !important; }
+</style>
+++++
+
+[.table-borderless, cols="1", frame="none", grid="none", stripes="none"]
+|===
+^| image:migration/stockapp.gif[width=60%, link=self, window=blank]
+|===
 
 The components consists of:
 

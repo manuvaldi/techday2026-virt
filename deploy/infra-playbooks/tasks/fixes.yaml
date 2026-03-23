@@ -49,8 +49,12 @@
 
 - name: Kubevirt - DataVolume Fedora 
   kubernetes.core.k8s:
-    kubeconfig: "{{item}}"
+    kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
     state: present
     template: "files/datavolume-fedora.yaml"
-  loop: 
-    - "{{ocp_installation_path}}/auth/kubeconfig"
+
+- name: Showroom - ClusterRole to allow openshift-route SA to have cert permissions (cert-manager)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
+    state: present
+    template: "files/certmanager-clusterole-lab.yaml"

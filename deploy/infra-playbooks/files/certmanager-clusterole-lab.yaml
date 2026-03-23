@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: router-showroom-secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  # Restringimos el permiso solo al secreto que genera cert-manager
+  resourceNames: ["showroom-tls-secret","stock-tls-secret"] 
+  verbs: ["get", "list", "watch"]

@@ -112,7 +112,10 @@ oc apply -f 01-vm-frontend.yaml -n {user}-application
 
 image::migration/00a.png[link=self, window=blank, width=100%]
 
-
+[NOTE]
+====
+With these YAMLs, we are not only deploying the Virtual Machines but also the Services and an OpenShift Route required to access the frontend and the entire application.
+====
 
 == Explore Services and Routes
 

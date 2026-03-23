@@ -156,8 +156,10 @@ spec:
   host: ''
   path: ''
   tls:
-    insecureEdgeTerminationPolicy: Redirect
     termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+    externalCertificate:
+      name: showroom-tls-secret
   port:
     targetPort: 8080
   alternateBackends: []

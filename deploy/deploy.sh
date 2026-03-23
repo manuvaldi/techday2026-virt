@@ -335,7 +335,7 @@ force_identity_creation() {
 
     while IFS="|" read -r user_part pass_part; do
         local user=$(echo "$user_part" | awk -F': ' '{print $2}' | tr -d ' ')
-        local password=$(echo "$pass_part" | awk -F': ' '{print $2}' | tr -d ' ')
+        local password=$(echo "$pass_part" | awk -F': ' '{print $2}' | tr -d ' \r')
         
         if [ -n "$user" ] && [ -n "$password" ]; then
             local retries=0
@@ -469,9 +469,7 @@ uninstall_and_clean() {
     read -ra USER_ARRAY <<< "$CURRENT_USERS"
     for user in "${USER_ARRAY[@]}"; do
         oc delete namespace "${user}-application" --ignore-not-found >/dev/null 2>&1
-        
         oc delete user "$user" --ignore-not-found >/dev/null 2>&1
-        
         oc delete identity "lab-users-htpasswd:${user}" --ignore-not-found >/dev/null 2>&1
     done
     
@@ -506,8 +504,7 @@ inject_oauth_proxy() {
     rm -f /tmp/patch-${app_name}.yaml
 
     oc patch service $app_name -n $namespace --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/targetPort", "value": 8888}]' >/dev/null 2>&1
-    oc patch route $app_name -n $namespace -p '{"spec":{"port":{"targetPort":8888},"tls":{"termination":"edge"}}}' >/dev/null 2>&1
-
+    
     oc annotate serviceaccount $sa_name serviceaccounts.openshift.io/oauth-redirectreference.primary='{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"'${app_name}'"}}' -n $namespace --overwrite >/dev/null 2>&1
 }
 
@@ -569,6 +566,77 @@ EOF
         
         inject_oauth_proxy "$user"
         oc adm policy add-role-to-user edit $user -n "${user}-application" >/dev/null 2>&1
+
+        local app_name="showroom-${user}"
+        local namespace="${user}-application"
+        local short_host="lab-${user}.${cluster_domain}"   
+        local short_host_app="stock-${user}-application.${cluster_domain}"
+
+        echo "Applying custom Route, Certificate, and RoleBinding for $user..."
+
+        oc delete route ${app_name} -n ${namespace} >/dev/null 2>&1
+
+cat <<EOF | oc apply -f - >/dev/null 2>&1
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ${app_name}
+  namespace: ${namespace}
+spec:
+  host: ${short_host}
+  to:
+    kind: Service
+    name: ${app_name}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  port:
+    targetPort: 8888
+EOF
+
+cat <<EOF | oc apply -f - >/dev/null 2>&1
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: router-showroom-reader-binding
+  namespace: ${namespace}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: router-showroom-secret-reader
+subjects:
+- kind: ServiceAccount
+  name: router
+  namespace: openshift-ingress
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: showroom-cert
+  namespace: ${namespace}
+spec:
+  secretName: showroom-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: ${short_host}
+  dnsNames:
+  - ${short_host}
+  - ${short_host_app}
+EOF
+
+        oc delete order --all -n ${namespace} >/dev/null 2>&1
+
+        echo "Waiting for Let's Encrypt to issue the certificate for $short_host (this may take 1-2 minutes)..."
+        oc wait --for=condition=Ready certificate/showroom-cert -n "${namespace}" --timeout=120s
+
+        if [ $? -eq 0 ]; then
+            oc patch route ${app_name} -n ${namespace} --type=merge -p '{"spec":{"tls":{"externalCertificate":{"name":"showroom-tls-secret"}}}}' >/dev/null 2>&1
+            echo " - Secured short Route created: https://${short_host}"
+        else
+            echo " - Warning: Certificate request timed out. Route is active using the default OpenShift wildcard cert."
+            echo " - URL: https://${short_host}"
+        fi
     done
 }
 
@@ -578,8 +646,14 @@ uninstall_showroom() {
 
     IFS=',' read -ra USER_ARRAY <<< "$CURRENT_USERS"
     for user in "${USER_ARRAY[@]}"; do
+        local namespace="${user}-application"
         echo "Uninstalling Showroom for user: $user..."
-        helm uninstall "showroom-${user}" --namespace "${user}-application" --ignore-not-found
+        
+        oc delete certificate showroom-cert -n "$namespace" --ignore-not-found >/dev/null 2>&1
+        oc delete rolebinding router-showroom-reader-binding -n "$namespace" --ignore-not-found >/dev/null 2>&1
+        oc delete secret showroom-tls-secret -n "$namespace" --ignore-not-found >/dev/null 2>&1
+        
+        helm uninstall "showroom-${user}" --namespace "$namespace" --ignore-not-found
     done
     echo "Showroom uninstalled successfully for all specified users."
 }

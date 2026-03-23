@@ -45,3 +45,12 @@
   loop: 
     - "/tmp/{{ azure_cluster_name }}-kubeconfig"
     - "{{ocp_installation_path}}/auth/kubeconfig"
+
+
+- name: Kubevirt - DataVolume Fedora 
+  kubernetes.core.k8s:
+    kubeconfig: "{{item}}"
+    state: present
+    template: "files/datavolume-fedora.yaml"
+  loop: 
+    - "{{ocp_installation_path}}/auth/kubeconfig"

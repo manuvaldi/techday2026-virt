@@ -1,0 +1,1 @@
+oc delete ns -l performance-test=true

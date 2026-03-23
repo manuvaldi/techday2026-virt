@@ -1,0 +1,15 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: fedora
+  namespace: openshift-virtualization-os-images
+spec:
+  source:
+    registry:
+      url: "docker://quay.io/containerdisks/fedora:43" 
+  pvc:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 6Gi

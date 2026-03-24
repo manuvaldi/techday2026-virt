@@ -5,4 +5,4 @@ metadata:
 data:
   podman.env: |
     BACKEND_URL=http://backend:5000/data
-    REDIS_HOST=database.user2-application
+    REDIS_HOST=database.NAMESPACE

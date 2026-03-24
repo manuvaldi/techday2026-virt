@@ -4,6 +4,7 @@ usercount=$1
 manifestdir=.
 nsprefix=dev
 NAMESPACE_LABEL="performance-test=true"
+DOMAIN_APPS=$(oc get ingresses.config.openshift.io -o jsonpath='{.spec.domain}' cluster)
 
 scriptdir=$(dirname $(readlink -f $0))
 
@@ -13,16 +14,25 @@ for i in $(seq 1 $usercount); do
     oc label ns $nsprefix-user$i-application $NAMESPACE_LABEL
 done
 
+echo "* Creating certificate"
+for i in $(seq 1 $usercount); do
+    oc project $nsprefix-user$i-application 
+    cat $scriptdir/00-certificate.yaml  | sed 's/DNSNAME/stock-'user${i}.${DOMAIN_APPS}'/g' | oc apply --wait=true -f -
+    oc wait --for=condition=Ready certificate/stock-cert  --timeout=120s
+done
+
 echo "* Creating configmap"
 for i in $(seq 1 $usercount); do
     oc project $nsprefix-user$i-application 
-    oc apply -f $scriptdir/configmap.yaml  
+    cat $scriptdir/configmap.yaml  | sed 's/NAMESPACE/'$nsprefix-user$i-application'/g' | oc apply -f -
 done
 
 echo "* Deploying VMs for $i"
 for i in $(seq 1 $usercount); do
     oc project $nsprefix-user$i-application 
-    oc apply -f $manifestdir/01-vm-frontend.yaml -f $manifestdir/03-vm-database.yaml -f $manifestdir/02-vm-backend.yaml
+    cat $manifestdir/01-vm-frontend.yaml | sed 's/DNSNAME/stock-'user${i}.${DOMAIN_APPS}'/g' | oc apply  -f -
+    oc apply -f $manifestdir/03-vm-database.yaml -f $manifestdir/02-vm-backend.yaml
+    subctl export service --namespace $nsprefix-user$i-application  database
 done
 
 

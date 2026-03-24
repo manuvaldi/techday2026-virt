@@ -1,3 +1,4 @@
+
 ---
 kind: Secret
 apiVersion: v1
@@ -149,15 +150,17 @@ kind: Route
 metadata:
   name: stock
 spec:
+  host: DNSNAME
   to:
     name: frontend
     weight: 100
     kind: Service
-  host: ''
   path: ''
   tls:
-    insecureEdgeTerminationPolicy: Redirect
     termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+    externalCertificate:
+      name: stock-tls-secret
   port:
     targetPort: 8080
   alternateBackends: []

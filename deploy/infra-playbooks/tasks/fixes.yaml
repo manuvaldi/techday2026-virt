@@ -87,3 +87,16 @@
   loop: 
     - "/tmp/{{ azure_cluster_name }}-kubeconfig"
     - "{{ocp_installation_path}}/auth/kubeconfig"        
+
+
+- name: Relabel local-cluster to Baremetal
+  k8s:
+    kubeconfig: "{{kubeconfig}}"  
+    state: present
+    api_version: cluster.open-cluster-management.io/v1
+    kind: ManagedCluster
+    name: "local-cluster"
+    definition:
+      metadata:
+        labels:
+          "cloud": "Baremetal"

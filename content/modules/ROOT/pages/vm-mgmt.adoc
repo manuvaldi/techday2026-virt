@@ -48,7 +48,7 @@ While Advanced Cluster Management (ACM) - installed in this cluster - offers a *
 
 . Notice that this interface is organized into three functional columns:
 * **Left Management Menu:** Provides access to specialized virtualization functions like the *Catalog*, *Templates*, and *InstanceTypes*, as well as *Storage* and *Networking* configurations.
-* **Central Project Column:** Displays your OpenShift **Projects** (namespaces). You should primarily see the {user}-application project here, click on it. If you don't see it, disable the *'Show only projects with VirtualMachines'* switch at the top. Once the VMs are created, the namespace will automatically appear in the tree view. You can then re-enable the 'Show only projects with VirtualMachines' switch.
+* **Central Project Column:** Displays your OpenShift **Projects** (namespaces). You should primarily see the `{user}-application` project here, click on it. If you don't see it, disable the *'Show only projects with VirtualMachines'* switch at the top. Once the VMs are created, the namespace will automatically appear in the tree view. You can then re-enable the 'Show only projects with VirtualMachines' switch.
 +
 image::vm-mgmt/projects-switch.png[link=self, window=blank, width=50%]
 +

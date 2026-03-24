@@ -58,3 +58,32 @@
     kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
     state: present
     template: "files/certmanager-clusterole-lab.yaml"
+
+- name: Quitar el rol self-provisioner a los usuarios autenticados
+  kubernetes.core.k8s:
+    kubeconfig: "{{item}}"
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: self-provisioners
+      subjects: [] 
+    state: patched
+  loop: 
+    - "/tmp/{{ azure_cluster_name }}-kubeconfig"
+    - "{{ocp_installation_path}}/auth/kubeconfig"
+
+- name: Bloquear la actualización automática del ClusterRoleBinding
+  kubernetes.core.k8s:
+    kubeconfig: "{{item}}"
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: self-provisioners
+        annotations:
+          rbac.authorization.kubernetes.io/autoupdate: "false"
+    state: patched    
+  loop: 
+    - "/tmp/{{ azure_cluster_name }}-kubeconfig"
+    - "{{ocp_installation_path}}/auth/kubeconfig"        

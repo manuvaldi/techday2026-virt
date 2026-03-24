@@ -220,6 +220,11 @@ Example:
 
 image::udn/udn-ipaddress.png[link=self, window=blank, width=100%]
 
+[NOTE]
+====
+If you see additional IP addresses, please disregard them. Record only the ones aligned with the interface name *as shown in the image*, keeping in mind that our networks follow the `10.10.100.x` and `10.10.200.x` patterns
+====
+
 - For the **backend**, check the `NetworkInterfaces` tab and note the IP assigned to *`nic-network-one`* (Network-One).
 - For the **database**, note the IP assigned to `nic-network-two` (Network-Two).
 

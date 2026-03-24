@@ -117,6 +117,7 @@ image::migration/00a.png[link=self, window=blank, width=100%]
 With these YAMLs, we are not only deploying the Virtual Machines but also the Services and an OpenShift Route required to access the frontend and the entire application.
 ====
 
+
 == Explore Services and Routes
 
 Once the VMs are in the **Running** state, OpenShift automatically manages their connectivity. 
@@ -153,4 +154,7 @@ Copy the URL from the `HOST/PORT` column of the `oc get route` command and paste
 *Stock App:* https://stock-{user}-application.{openshift_cluster_domain}/[https://stock-{user}-application.{openshift_cluster_domain}/^]
 
 
-
+[IMPORTANT]
+====
+The application may take a few moments to become fully available while the underlying services are being initialized.
+====

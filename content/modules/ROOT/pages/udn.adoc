@@ -159,7 +159,7 @@ image::udn/udn-deleteinterface.png[link=self, window=blank, width=100%]
 Now that you are familiar with managing VM interfaces, follow the connectivity matrix below to align the virtual machine configurations with our target architecture:
 
 .VM Interface Connectivity Matrix
-[cols="2,1,2,3", options="header"]
+[cols="1,1,2,4", options="header"]
 |===
 | VM Name | Action | Interface Name | Network (UDN) 
 

@@ -69,7 +69,7 @@ spec:
         storage:
           resources:
             requests:
-              storage: 6Gi
+              storage: 5Gi
   runStrategy: RerunOnFailure
   template:
     metadata:

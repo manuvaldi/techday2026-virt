@@ -8,9 +8,9 @@ spec:
     registry:
       url: "docker://quay.io/containerdisks/fedora:43" 
   pvc:
+    volumeMode: Block
     accessModes:
       - ReadWriteOnce
     resources:
       requests:
-        storage: 6Gi
----
+        storage: 5Gi

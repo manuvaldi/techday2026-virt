@@ -16,22 +16,22 @@ done
 
 echo "* Creating certificate"
 for i in $(seq 1 $usercount); do
-    oc project $nsprefix-user$i-application 
-    cat $scriptdir/00-certificate.yaml  | sed 's/DNSNAME/stock-'user${i}.${DOMAIN_APPS}'/g' | oc apply --wait=true -f -
+    oc project $nsprefix-user$i-application  1> /dev/null
+    cat $scriptdir/00-certificate.yaml  | sed 's/DNSNAME/stock-'user${i}.${DOMAIN_APPS}'/g' | oc apply -n $nsprefix-user$i-application  --wait=true -f -
     oc wait --for=condition=Ready certificate/stock-cert  --timeout=120s
 done
 
 echo "* Creating configmap"
 for i in $(seq 1 $usercount); do
-    oc project $nsprefix-user$i-application 
-    cat $scriptdir/configmap.yaml  | sed 's/NAMESPACE/'$nsprefix-user$i-application'/g' | oc apply -f -
+    oc project $nsprefix-user$i-application  1> /dev/null
+    cat $scriptdir/configmap.yaml  | sed 's/NAMESPACE/'$nsprefix-user$i-application'/g' | oc apply -n $nsprefix-user$i-application  -f -
 done
 
 echo "* Deploying VMs for $i"
 for i in $(seq 1 $usercount); do
-    oc project $nsprefix-user$i-application 
-    cat $manifestdir/01-vm-frontend.yaml | sed 's/DNSNAME/stock-'user${i}.${DOMAIN_APPS}'/g' | oc apply  -f -
-    oc apply -f $manifestdir/03-vm-database.yaml -f $manifestdir/02-vm-backend.yaml
+    oc project $nsprefix-user$i-application 1> /dev/null
+    cat $manifestdir/01-vm-frontend.yaml | sed 's/DNSNAME/stock-'user${i}.${DOMAIN_APPS}'/g' | oc apply -n $nsprefix-user$i-application -f -
+    oc apply -n $nsprefix-user$i-application -f $manifestdir/03-vm-database.yaml -f $manifestdir/02-vm-backend.yaml
     subctl export service --namespace $nsprefix-user$i-application  database
 done
 

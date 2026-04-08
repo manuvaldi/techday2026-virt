@@ -52,6 +52,7 @@
     kubeconfig: "{{ocp_installation_path}}/auth/kubeconfig"
     state: present
     template: "files/datavolume-fedora.yaml"
+  failed_when: false
 
 - name: Showroom - ClusterRole to allow openshift-route SA to have cert permissions (cert-manager)
   kubernetes.core.k8s:

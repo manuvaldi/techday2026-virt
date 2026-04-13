@@ -11,6 +11,7 @@
         k8s_nodes_info.resources
         | rejectattr('metadata.labels', 'contains', 'node-role.kubernetes.io/control-plane')
         | rejectattr('metadata.labels', 'contains', 'node-role.kubernetes.io/infra')
+        | rejectattr('metadata.labels', 'contains', 'node-role.kubernetes.io/submariner')
         | map(attribute='metadata.name')
         | list
       }}
@@ -30,6 +31,33 @@
         labels:
           cluster.ocs.openshift.io/openshift-storage: ''
   loop: "{{ k8s_workers }}"
+
+- name: Get all MachineSets with worker role
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{kubeconfig}}"
+    api_version: machine.openshift.io/v1beta1
+    kind: MachineSet
+    label_selectors:
+      - "machine.openshift.io/cluster-api-machine-role=worker"
+  register: worker_machinesets
+
+- name: Patch MachineSets to add the OCS storage label
+  kubernetes.core.k8s:
+    kubeconfig: "{{kubeconfig}}"  
+    state: patched
+    api_version: machine.openshift.io/v1beta1
+    kind: MachineSet
+    name: "{{ item.metadata.name }}"
+    namespace: "{{ item.metadata.namespace }}"
+    definition:
+      spec:
+        template:
+          spec:
+            metadata:
+              labels:
+                cluster.ocs.openshift.io/openshift-storage: ""
+  loop: "{{ worker_machinesets.resources }}"
+  when: worker_machinesets.resources | length > 0
 
 - name: ODF - Install ODF Operator
   kubernetes.core.k8s:

@@ -16,3 +16,6 @@ letsencrypt: false
 
 odf_sc: thin-csi
 osd_size: 512Gi
+
+azure_master_size: Standard_D4s_v3
+azure_worker_size: Standard_D8s_v3

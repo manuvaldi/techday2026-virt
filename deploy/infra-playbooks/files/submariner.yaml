@@ -27,7 +27,7 @@ spec:
   insecureBrokerConnection: true    
   subscriptionConfig:
     channel: stable-0.21
-    installPlanApproval: automatic
+    installPlanApproval: Automatic
     source: redhat-operators
     sourceNamespace: openshift-marketplace
 
@@ -56,7 +56,7 @@ spec:
   insecureBrokerConnection: true
   subscriptionConfig:
     channel: stable-0.21
-    installPlanApproval: automatic
+    installPlanApproval: Automatic
     source: redhat-operators
     sourceNamespace: openshift-marketplace
 

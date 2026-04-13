@@ -62,7 +62,9 @@
     - name: Cross Cluster Enable 
       include_tasks:
         file: tasks/ocp-crosscluster-enable.yaml
-      when: acm|bool == true and crosscluster|bool == true
+      when: 
+        - acm|bool
+        - crosscluster|bool
 
 ## Deploy web terminal (policy)
 

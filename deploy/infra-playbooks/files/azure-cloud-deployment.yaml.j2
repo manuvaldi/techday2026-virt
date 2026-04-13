@@ -12,7 +12,7 @@ controlPlane:
     azure:
       osDisk:
         diskSizeGB: 1024
-        type:  Standard_D4s_v3
+      type:  {{ azure_master_size }}
 compute:
 - hyperthreading: Enabled
   name: 'worker'
@@ -29,12 +29,12 @@ compute:
 networking:
   networkType: OVNKubernetes
   clusterNetwork:
-  - cidr: 10.128.0.0/14
+  - cidr: {{ azure_sdn_clusternetwork | default('10.128.0.0/14') }}
     hostPrefix: 23
   machineNetwork:
   - cidr: 10.0.0.0/16
   serviceNetwork:
-  - 172.30.0.0/16
+  - {{ azure_sdn_servicenetwork | default('172.30.0.0/16') }}
 platform:
   azure:
     baseDomainResourceGroupName: {{azure_resource_group}}

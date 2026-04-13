@@ -10,8 +10,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
+  commonName: console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
+  - console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   - console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 ---
 apiVersion: cert-manager.io/v1
@@ -24,8 +25,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
+  commonName: oauth.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
+  - oauth.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   - oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 
 ## Recreate secrets in accordance namespace
@@ -40,8 +42,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
+  commonName: console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
+  - console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   - console-openshift-console.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 
 ---
@@ -55,7 +58,8 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
+  commonName: oauth.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   dnsNames:
+  - oauth.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
   - oauth-openshift.apps.{{ocp_cluster_name}}.{{ocp_base_domain}}
 
